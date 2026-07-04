@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float } from '@react-three/drei';
-import { useRef, useEffect, useState } from 'react';
+import { Float, useTexture } from '@react-three/drei';
+import { useRef, useEffect, useState, Suspense } from 'react';
 import * as THREE from 'three';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
@@ -16,30 +16,29 @@ interface ShapeProps {
   floatIntensity?: number;
 }
 
-function Diamond() {
+function EarthPlanet() {
+  const colorMap = useTexture('/textures/earth.jpg');
   return (
     <group>
-      <mesh><sphereGeometry args={[0.6, 32, 32]} /><meshStandardMaterial color="#3b82f6" roughness={0.6} /></mesh>
-      <mesh rotation={[Math.PI / 4, 0, 0]}><torusGeometry args={[0.9, 0.05, 16, 64]} /><meshStandardMaterial color="#93c5fd" roughness={0.4} /></mesh>
-      <mesh rotation={[-Math.PI / 4, 0, 0]}><torusGeometry args={[1.1, 0.02, 16, 64]} /><meshStandardMaterial color="#e0e7ff" roughness={0.2} /></mesh>
+      <mesh><sphereGeometry args={[0.7, 64, 64]} /><meshStandardMaterial map={colorMap} roughness={0.6} metalness={0.1} /></mesh>
     </group>
   );
 }
 
-function Gem() {
+function MarsPlanet() {
+  const colorMap = useTexture('/textures/mars.jpg');
   return (
     <group>
-      <mesh><sphereGeometry args={[0.7, 32, 32]} /><meshStandardMaterial color="#a855f7" roughness={0.5} /></mesh>
-      <mesh position={[1.2, 0, 0]}><sphereGeometry args={[0.15, 16, 16]} /><meshStandardMaterial color="#d8b4fe" roughness={0.8} /></mesh>
+      <mesh><sphereGeometry args={[0.6, 64, 64]} /><meshStandardMaterial map={colorMap} roughness={0.8} metalness={0.2} /></mesh>
     </group>
   );
 }
 
-function Planet() {
+function JupiterPlanet() {
+  const colorMap = useTexture('/textures/jupiter.jpg');
   return (
     <group>
-      <mesh><sphereGeometry args={[0.5, 32, 32]} /><meshStandardMaterial color="#f97316" roughness={0.7} /></mesh>
-      <mesh rotation={[Math.PI / 3, 0, 0]}><torusGeometry args={[0.8, 0.1, 16, 64]} /><meshStandardMaterial color="#fcd34d" roughness={0.4} /></mesh>
+      <mesh><sphereGeometry args={[0.9, 64, 64]} /><meshStandardMaterial map={colorMap} roughness={0.5} metalness={0.1} /></mesh>
     </group>
   )
 }
@@ -86,9 +85,11 @@ function Shape({ type, targetPosition, targetScale = 1, scale = 1, speed = 2, fl
     <group ref={outerRef}>
       <Float speed={speed} rotationIntensity={0.5} floatIntensity={floatIntensity}>
         <group ref={innerRef} scale={scale}>
-          {type === 'diamond' && <Diamond />}
-          {type === 'gem' && <Gem />}
-          {type === 'planet' && <Planet />}
+          <Suspense fallback={null}>
+            {type === 'diamond' && <EarthPlanet />}
+            {type === 'gem' && <MarsPlanet />}
+            {type === 'planet' && <JupiterPlanet />}
+          </Suspense>
         </group>
       </Float>
     </group>
@@ -206,7 +207,9 @@ function MiniPlanetScene() {
   });
   return (
     <group ref={innerRef} scale={1.5}>
-      <Planet />
+      <Suspense fallback={null}>
+        <JupiterPlanet />
+      </Suspense>
     </group>
   );
 }
