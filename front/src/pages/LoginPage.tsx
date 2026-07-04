@@ -76,7 +76,7 @@ export default function LoginPage() {
       <motion.div className="auth-right" variants={fadeInUpVariant}>
         <div className="auth-card">
           <motion.div className="auth-logo" variants={logoVariant}>
-            <span className="auth-logo-text">pompel<span className="auth-logo-1">1</span></span>
+            <span className="auth-logo-text">Orb<span className="auth-logo-1">Sync</span></span>
           </motion.div>
 
           <div className="auth-header">

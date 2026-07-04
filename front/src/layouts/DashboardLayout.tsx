@@ -32,7 +32,7 @@ export default function DashboardLayout() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
           >
-            <div className="dashboard-splash-logo">pompel<span>1</span></div>
+            <div className="dashboard-splash-logo">Orb<span>Sync</span></div>
           </motion.div>
         ) : (
           <motion.div 
@@ -51,7 +51,7 @@ export default function DashboardLayout() {
                 transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               >
                 <div className="dashboard-brand">
-                  <span className="dashboard-logo">pompel<span className="dashboard-logo-1">1</span></span>
+                  <span className="dashboard-logo">Orb<span className="dashboard-logo-1">Sync</span></span>
                 </div>
 
                 <nav className="dashboard-nav">
