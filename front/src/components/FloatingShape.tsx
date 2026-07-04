@@ -19,11 +19,12 @@ interface ShapeProps {
 function EarthPlanet() {
   return (
     <group>
-      <mesh><sphereGeometry args={[0.6, 32, 32]} /><meshStandardMaterial color="#3b82f6" roughness={0.5} /></mesh>
-      <mesh position={[0.3, 0.2, 0.4]}><sphereGeometry args={[0.25, 16, 16]} /><meshStandardMaterial color="#22c55e" roughness={0.7} /></mesh>
-      <mesh position={[-0.2, -0.3, 0.45]}><sphereGeometry args={[0.2, 16, 16]} /><meshStandardMaterial color="#22c55e" roughness={0.7} /></mesh>
-      <mesh position={[-0.4, 0.2, -0.3]}><sphereGeometry args={[0.22, 16, 16]} /><meshStandardMaterial color="#22c55e" roughness={0.7} /></mesh>
-      <mesh position={[0.2, -0.4, -0.3]}><sphereGeometry args={[0.18, 16, 16]} /><meshStandardMaterial color="#22c55e" roughness={0.7} /></mesh>
+      {/* Oceano Azul */}
+      <mesh><sphereGeometry args={[0.5, 32, 32]} /><meshStandardMaterial color="#3b82f6" roughness={0.7} /></mesh>
+      {/* Lua (Moon) */}
+      <mesh position={[0.8, 0.4, 0]}><sphereGeometry args={[0.1, 16, 16]} /><meshStandardMaterial color="#e2e8f0" roughness={0.4} /></mesh>
+      {/* Anel super fino para dar o estilo 'fofo/sci-fi' parecido com o saturno */}
+      <mesh rotation={[Math.PI / 4, Math.PI / 6, 0]}><torusGeometry args={[0.7, 0.02, 16, 64]} /><meshStandardMaterial color="#93c5fd" roughness={0.3} /></mesh>
     </group>
   );
 }
@@ -31,10 +32,11 @@ function EarthPlanet() {
 function MarsPlanet() {
   return (
     <group>
-      <mesh><sphereGeometry args={[0.55, 32, 32]} /><meshStandardMaterial color="#ef4444" roughness={0.8} /></mesh>
-      <mesh position={[0.3, 0.2, 0.4]}><sphereGeometry args={[0.1, 16, 16]} /><meshStandardMaterial color="#991b1b" roughness={0.9} /></mesh>
-      <mesh position={[-0.2, -0.3, 0.4]}><sphereGeometry args={[0.08, 16, 16]} /><meshStandardMaterial color="#991b1b" roughness={0.9} /></mesh>
-      <mesh position={[0.1, 0.4, -0.3]}><sphereGeometry args={[0.12, 16, 16]} /><meshStandardMaterial color="#991b1b" roughness={0.9} /></mesh>
+      {/* Planeta Vermelho */}
+      <mesh><sphereGeometry args={[0.45, 32, 32]} /><meshStandardMaterial color="#ef4444" roughness={0.8} /></mesh>
+      {/* Luas pequenas (Fobos e Deimos) */}
+      <mesh position={[-0.6, 0.2, 0.2]}><sphereGeometry args={[0.08, 16, 16]} /><meshStandardMaterial color="#fca5a5" roughness={0.6} /></mesh>
+      <mesh position={[0.5, -0.3, -0.2]}><sphereGeometry args={[0.05, 16, 16]} /><meshStandardMaterial color="#fca5a5" roughness={0.6} /></mesh>
     </group>
   );
 }
