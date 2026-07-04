@@ -40,31 +40,15 @@ function EarthPlanet() {
 function JupiterPlanet() {
   return (
     <group>
-      {/* Esfera Base Bege */}
-      <mesh><sphereGeometry args={[0.55, 32, 32]} /><meshStandardMaterial color="#fde68a" roughness={0.7} /></mesh>
+      {/* Esfera gigante, lisa e ultra-minimalista */}
+      <mesh><sphereGeometry args={[0.6, 32, 32]} /><meshStandardMaterial color="#fde68a" roughness={0.6} /></mesh>
       
-      {/* Faixa Superior 3D (Torus achatado embutido na esfera) */}
-      <mesh position={[0, 0.25, 0]} scale={[1, 0.4, 1]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.49, 0.08, 16, 64]} />
-        <meshStandardMaterial color="#b45309" roughness={0.8} />
-      </mesh>
+      {/* Anel fino, elegante e puramente externo (sem cruzar a esfera) */}
+      <mesh rotation={[Math.PI / 5, 0, 0]}><torusGeometry args={[0.9, 0.02, 16, 64]} /><meshStandardMaterial color="#d97706" roughness={0.4} /></mesh>
 
-      {/* Faixa Inferior 3D */}
-      <mesh position={[0, -0.15, 0]} scale={[1, 0.6, 1]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.51, 0.1, 16, 64]} />
-        <meshStandardMaterial color="#d97706" roughness={0.8} />
-      </mesh>
-
-      {/* A Grande Mancha Vermelha (Esfera achatada na superfície) */}
-      <mesh position={[0.42, -0.15, 0.35]} rotation={[0, Math.PI / 4, 0]} scale={[1.5, 1, 0.5]}>
-        <sphereGeometry args={[0.08, 16, 16]} />
-        <meshStandardMaterial color="#ef4444" roughness={0.7} />
-      </mesh>
-
-      {/* Luas de Jupiter */}
-      <mesh position={[-0.7, 0.3, 0.2]}><sphereGeometry args={[0.08, 16, 16]} /><meshStandardMaterial color="#fcd34d" roughness={0.5} /></mesh>
-      <mesh position={[0.6, -0.4, -0.2]}><sphereGeometry args={[0.06, 16, 16]} /><meshStandardMaterial color="#e2e8f0" roughness={0.5} /></mesh>
-      <mesh position={[0.2, 0.6, 0.4]}><sphereGeometry args={[0.05, 16, 16]} /><meshStandardMaterial color="#fdba74" roughness={0.5} /></mesh>
+      {/* Luas minúsculas orbitando externamente */}
+      <mesh position={[-1.0, 0.2, 0.2]}><sphereGeometry args={[0.08, 16, 16]} /><meshStandardMaterial color="#fcd34d" roughness={0.5} /></mesh>
+      <mesh position={[0.8, -0.3, -0.2]}><sphereGeometry args={[0.05, 16, 16]} /><meshStandardMaterial color="#e2e8f0" roughness={0.5} /></mesh>
     </group>
   );
 }
