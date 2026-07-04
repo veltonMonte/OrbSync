@@ -24,7 +24,13 @@ const earthSvgUri = 'data:image/svg+xml;base64,' + btoa(`<svg width="512" height
   <circle cx="480" cy="200" r="30" fill="#22c55e"/>
 </svg>`);
 
-const jupiterSvgUri = '';
+const jupiterSvgUri = 'data:image/svg+xml;base64,' + btoa(`<svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="256" fill="#fde68a"/>
+  <path d="M0 60 Q128 90 256 60 T512 60 L512 80 Q384 110 256 80 T0 80 Z" fill="#d97706"/>
+  <path d="M0 130 Q128 110 256 130 T512 130 L512 170 Q384 150 256 170 T0 170 Z" fill="#b45309"/>
+  <path d="M0 200 Q128 220 256 200 T512 200 L512 215 Q384 235 256 215 T0 215 Z" fill="#d97706"/>
+  <circle cx="300" cy="150" r="20" fill="#ef4444"/>
+</svg>`);
 
 function EarthPlanet() {
   const tex = useTexture(earthSvgUri);
@@ -38,17 +44,15 @@ function EarthPlanet() {
 }
 
 function JupiterPlanet() {
+  const tex = useTexture(jupiterSvgUri);
   return (
     <group>
-      {/* Esfera gigante, lisa e ultra-minimalista */}
-      <mesh><sphereGeometry args={[0.6, 32, 32]} /><meshStandardMaterial color="#fde68a" roughness={0.6} /></mesh>
+      <mesh><sphereGeometry args={[0.55, 32, 32]} /><meshStandardMaterial map={tex} roughness={0.7} /></mesh>
       
-      {/* Anel fino, elegante e puramente externo (sem cruzar a esfera) */}
-      <mesh rotation={[Math.PI / 5, 0, 0]}><torusGeometry args={[0.9, 0.02, 16, 64]} /><meshStandardMaterial color="#d97706" roughness={0.4} /></mesh>
-
       {/* Luas minúsculas orbitando externamente */}
-      <mesh position={[-1.0, 0.2, 0.2]}><sphereGeometry args={[0.08, 16, 16]} /><meshStandardMaterial color="#fcd34d" roughness={0.5} /></mesh>
-      <mesh position={[0.8, -0.3, -0.2]}><sphereGeometry args={[0.05, 16, 16]} /><meshStandardMaterial color="#e2e8f0" roughness={0.5} /></mesh>
+      <mesh position={[-0.7, 0.3, 0.2]}><sphereGeometry args={[0.08, 16, 16]} /><meshStandardMaterial color="#fcd34d" roughness={0.5} /></mesh>
+      <mesh position={[0.6, -0.4, -0.2]}><sphereGeometry args={[0.06, 16, 16]} /><meshStandardMaterial color="#e2e8f0" roughness={0.5} /></mesh>
+      <mesh position={[0.2, 0.6, 0.4]}><sphereGeometry args={[0.05, 16, 16]} /><meshStandardMaterial color="#fdba74" roughness={0.5} /></mesh>
     </group>
   );
 }
