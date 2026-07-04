@@ -25,11 +25,11 @@ const earthSvgUri = 'data:image/svg+xml;base64,' + btoa(`<svg width="512" height
 </svg>`);
 
 const jupiterSvgUri = 'data:image/svg+xml;base64,' + btoa(`<svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="256" fill="#fde68a"/>
-  <path d="M0 60 Q128 90 256 60 T512 60 L512 80 Q384 110 256 80 T0 80 Z" fill="#d97706"/>
-  <path d="M0 130 Q128 110 256 130 T512 130 L512 170 Q384 150 256 170 T0 170 Z" fill="#b45309"/>
-  <path d="M0 200 Q128 220 256 200 T512 200 L512 215 Q384 235 256 215 T0 215 Z" fill="#d97706"/>
-  <circle cx="300" cy="150" r="20" fill="#ef4444"/>
+  <rect width="512" height="256" fill="#f59e0b"/>
+  <path d="M0 60 Q128 90 256 60 T512 60 L512 80 Q384 110 256 80 T0 80 Z" fill="#b45309"/>
+  <path d="M0 130 Q128 110 256 130 T512 130 L512 170 Q384 150 256 170 T0 170 Z" fill="#78350f"/>
+  <path d="M0 200 Q128 220 256 200 T512 200 L512 215 Q384 235 256 215 T0 215 Z" fill="#92400e"/>
+  <circle cx="300" cy="150" r="20" fill="#b91c1c"/>
 </svg>`);
 
 function EarthPlanet() {
