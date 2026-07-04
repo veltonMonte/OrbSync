@@ -24,13 +24,7 @@ const earthSvgUri = 'data:image/svg+xml;base64,' + btoa(`<svg width="512" height
   <circle cx="480" cy="200" r="30" fill="#22c55e"/>
 </svg>`);
 
-const jupiterSvgUri = 'data:image/svg+xml;base64,' + btoa(`<svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="256" fill="#fde68a"/>
-  <rect x="0" y="40" width="512" height="30" fill="#d97706"/>
-  <rect x="0" y="100" width="512" height="50" fill="#b45309"/>
-  <rect x="0" y="180" width="512" height="20" fill="#d97706"/>
-  <ellipse cx="250" cy="125" rx="40" ry="20" fill="#ef4444"/>
-</svg>`);
+const jupiterSvgUri = '';
 
 function EarthPlanet() {
   const tex = useTexture(earthSvgUri);
@@ -44,11 +38,30 @@ function EarthPlanet() {
 }
 
 function JupiterPlanet() {
-  const tex = useTexture(jupiterSvgUri);
   return (
     <group>
-      <mesh><sphereGeometry args={[0.55, 32, 32]} /><meshStandardMaterial map={tex} roughness={0.7} /></mesh>
-      {/* Luas de Jupiter (Europa, Ganimedes...) */}
+      {/* Esfera Base Bege */}
+      <mesh><sphereGeometry args={[0.55, 32, 32]} /><meshStandardMaterial color="#fde68a" roughness={0.7} /></mesh>
+      
+      {/* Faixa Superior 3D (Torus achatado embutido na esfera) */}
+      <mesh position={[0, 0.25, 0]} scale={[1, 0.4, 1]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.49, 0.08, 16, 64]} />
+        <meshStandardMaterial color="#b45309" roughness={0.8} />
+      </mesh>
+
+      {/* Faixa Inferior 3D */}
+      <mesh position={[0, -0.15, 0]} scale={[1, 0.6, 1]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.51, 0.1, 16, 64]} />
+        <meshStandardMaterial color="#d97706" roughness={0.8} />
+      </mesh>
+
+      {/* A Grande Mancha Vermelha (Esfera achatada na superfície) */}
+      <mesh position={[0.42, -0.15, 0.35]} rotation={[0, Math.PI / 4, 0]} scale={[1.5, 1, 0.5]}>
+        <sphereGeometry args={[0.08, 16, 16]} />
+        <meshStandardMaterial color="#ef4444" roughness={0.7} />
+      </mesh>
+
+      {/* Luas de Jupiter */}
       <mesh position={[-0.7, 0.3, 0.2]}><sphereGeometry args={[0.08, 16, 16]} /><meshStandardMaterial color="#fcd34d" roughness={0.5} /></mesh>
       <mesh position={[0.6, -0.4, -0.2]}><sphereGeometry args={[0.06, 16, 16]} /><meshStandardMaterial color="#e2e8f0" roughness={0.5} /></mesh>
       <mesh position={[0.2, 0.6, 0.4]}><sphereGeometry args={[0.05, 16, 16]} /><meshStandardMaterial color="#fdba74" roughness={0.5} /></mesh>
