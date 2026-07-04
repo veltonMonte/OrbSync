@@ -150,9 +150,9 @@ export function Floating3DBackground() {
   let gemPos: [number, number, number] = isMobile ? [1.5, -3.0, -2] : [-6.0, -0.5, -3]; // Jupiter
   let planetPos: [number, number, number] = isMobile ? [-2.0, -2.0, -3] : [-2.5, -2.5, -1]; // Saturn
   
-  let diamondTargetScale = isMobile ? 0.6 : 1;
-  let gemTargetScale = isMobile ? 0.6 : 1;
-  let planetTargetScale = isMobile ? 0.6 : 1;
+  let diamondTargetScale = isMobile ? 0.5 : 0.8; // Earth (menor)
+  let gemTargetScale = isMobile ? 0.8 : 1.3;     // Jupiter (maior)
+  let planetTargetScale = isMobile ? 0.6 : 1.0;  // Saturn (médio)
 
   if (animState === 'transition') {
     // Alinhados ao lado da logo no header
@@ -160,17 +160,18 @@ export function Floating3DBackground() {
     gemPos = isMobile ? [0, 0, 1] : [2.5, 0, 1];
     diamondPos = isMobile ? [0, -1.8, 1] : [4.0, 0, 1];
     
-    planetTargetScale = isMobile ? 0.25 : 0.38;
-    gemTargetScale = isMobile ? 0.18 : 0.25;
-    diamondTargetScale = isMobile ? 0.2 : 0.3;
+    // Escalas proporcionais também no topo
+    planetTargetScale = isMobile ? 0.20 : 0.25;
+    gemTargetScale = isMobile ? 0.25 : 0.32;
+    diamondTargetScale = isMobile ? 0.15 : 0.20;
   } else if (animState === 'dashboard') {
     // Dashboard - Flutuando harmonicamente nos cantos vazios da tela para não tampar a interface
     diamondPos = isMobile ? [2.5, 3.5, -4] : [7.0, 2.5, -4]; // Earth (Direita no alto)
     gemPos = isMobile ? [-2.0, -3.5, -3] : [-5.0, -3.5, -4]; // Jupiter (Esquerda embaixo - abaixo da sidebar)
     planetPos = isMobile ? [2.0, -3.0, -5] : [5.5, -3.0, -3]; // Saturn (Direita embaixo)
     
-    diamondTargetScale = isMobile ? 0.6 : 0.9;
-    gemTargetScale = isMobile ? 0.6 : 0.9;
+    diamondTargetScale = isMobile ? 0.5 : 0.7;
+    gemTargetScale = isMobile ? 0.8 : 1.2;
     planetTargetScale = isMobile ? 0.6 : 0.9;
   }
 
