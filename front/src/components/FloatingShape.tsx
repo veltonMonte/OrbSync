@@ -17,22 +17,21 @@ interface ShapeProps {
 }
 
 function Diamond() {
-  const diamondMat = <meshStandardMaterial color="#ec4899" roughness={0.2} metalness={0.5} />;
   return (
-    <mesh>
-      <octahedronGeometry args={[1, 0]} />
-      {diamondMat}
-    </mesh>
+    <group>
+      <mesh><sphereGeometry args={[0.6, 32, 32]} /><meshStandardMaterial color="#3b82f6" roughness={0.6} /></mesh>
+      <mesh rotation={[Math.PI / 4, 0, 0]}><torusGeometry args={[0.9, 0.05, 16, 64]} /><meshStandardMaterial color="#93c5fd" roughness={0.4} /></mesh>
+      <mesh rotation={[-Math.PI / 4, 0, 0]}><torusGeometry args={[1.1, 0.02, 16, 64]} /><meshStandardMaterial color="#e0e7ff" roughness={0.2} /></mesh>
+    </group>
   );
 }
 
 function Gem() {
-  const gemMat = <meshStandardMaterial color="#3b82f6" roughness={0.3} metalness={0.2} />;
   return (
-    <mesh>
-      <icosahedronGeometry args={[1.2, 0]} />
-      {gemMat}
-    </mesh>
+    <group>
+      <mesh><sphereGeometry args={[0.7, 32, 32]} /><meshStandardMaterial color="#a855f7" roughness={0.5} /></mesh>
+      <mesh position={[1.2, 0, 0]}><sphereGeometry args={[0.15, 16, 16]} /><meshStandardMaterial color="#d8b4fe" roughness={0.8} /></mesh>
+    </group>
   );
 }
 
