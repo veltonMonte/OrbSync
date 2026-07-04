@@ -1,0 +1,211 @@
+.custom-node {
+  padding: 15px;
+  border-radius: 12px;
+  background: rgba(15, 15, 20, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  min-width: 250px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.custom-node:hover {
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+}
+
+.custom-node.selected {
+  border-color: #c084fc;
+  box-shadow: 0 0 0 2px rgba(192, 132, 252, 0.4);
+}
+
+.node-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.node-delete-btn {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.node-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.node-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.trigger-node .node-icon {
+  background: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+}
+
+.trigger-node-clock .node-icon {
+  background: rgba(250, 204, 21, 0.15);
+  color: #facc15;
+}
+
+.trigger-node-terminal { border-left: 4px solid #2dd4bf; }
+.trigger-node-terminal .node-icon { color: #2dd4bf; background: rgba(45,212,191,0.1); }
+.trigger-node-terminal .node-header { border-bottom-color: rgba(45,212,191,0.2); }
+
+.action-node .node-icon {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+}
+
+.action-node-mail { border-left: 4px solid #fb923c; }
+.action-node-mail .node-icon { color: #fb923c; background: rgba(251,146,60,0.1); }
+.action-node-mail .node-header { border-bottom-color: rgba(251,146,60,0.2); }
+
+.action-node-ai .node-icon {
+  background: rgba(192, 132, 252, 0.15);
+  color: #c084fc;
+}
+
+.action-node-terminal { border-left: 4px solid #2dd4bf; }
+.action-node-terminal .node-icon { color: #2dd4bf; background: rgba(45,212,191,0.1); }
+.action-node-terminal .node-header { border-bottom-color: rgba(45,212,191,0.2); }
+
+.action-node-doc .node-icon {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}
+
+.node-title {
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.node-body p {
+  font-size: 0.8rem;
+  color: #a1a1aa;
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+}
+
+/* Config Areas (Inputs inside nodes) */
+.node-config-area {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.node-config-area label {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.node-config-area input,
+.node-config-area select,
+.node-config-area textarea {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #fff;
+  padding: 8px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  width: 100%;
+  resize: none;
+}
+
+.node-config-area input:focus,
+.node-config-area select:focus,
+.node-config-area textarea:focus {
+  outline: none;
+  border-color: #c084fc;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.node-config-area textarea {
+  min-height: 60px;
+}
+
+/* React Flow Handle overrides */
+.react-flow__handle {
+  width: 12px;
+  height: 12px;
+  background: #27272a;
+  border: 2px solid #a1a1aa;
+  transition: all 0.2s;
+}
+
+.react-flow__handle:hover {
+  background: #c084fc;
+  border-color: #fff;
+  transform: scale(1.2);
+}
+
+.trigger-node .react-flow__handle {
+  border-color: #f472b6;
+}
+
+.trigger-node-clock .react-flow__handle {
+  border-color: #facc15;
+}
+
+.action-node .react-flow__handle,
+.action-node-mail .react-flow__handle {
+  border-color: #60a5fa;
+}
+
+.action-node-ai .react-flow__handle {
+  border-color: #c084fc;
+}
+
+.action-node-doc .react-flow__handle {
+  border-color: #34d399;
+}
+
+/* React Flow Controls Visibility Fix */
+.react-flow__controls {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: #18181b !important;
+}
+
+.react-flow__controls-button {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  transition: background 0.2s !important;
+}
+
+.react-flow__controls-button:hover {
+  background: #3f3f46 !important;
+}
+
+.react-flow__controls-button svg {
+  fill: #fff !important;
+}
