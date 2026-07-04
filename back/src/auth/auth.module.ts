@@ -13,7 +13,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET', 'pompeli-secret-dev'),
+        secret: configService.get<string>('JWT_SECRET', 'orbsync-secret-dev'),
         signOptions: { expiresIn: '15m' },
       }),
     }),

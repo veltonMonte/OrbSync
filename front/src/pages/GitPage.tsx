@@ -20,13 +20,13 @@ const COMMON_COMMANDS = [
 export default function GitPage() {
   const [terminalInput, setTerminalInput] = useState('');
   const [commandHistory, setCommandHistory] = useState<string[]>(() => {
-    const saved = localStorage.getItem('pompeli_term_cmd_history');
+    const saved = localStorage.getItem('orbsync_term_cmd_history');
     return saved ? JSON.parse(saved) : [];
   });
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [draftInput, setDraftInput] = useState('');
   const [currentCwd, setCurrentCwd] = useState('~');
-  const [machineInfo, setMachineInfo] = useState({ username: 'velton', hostname: 'pompeli' });
+  const [machineInfo, setMachineInfo] = useState({ username: 'velton', hostname: 'orbsync' });
   
   useEffect(() => {
     terminalService.getInfo().then(info => {
@@ -42,10 +42,10 @@ export default function GitPage() {
   }, []);
   
   const [history, setHistory] = useState<TerminalLine[]>(() => {
-    const saved = localStorage.getItem('pompeli_term_history');
+    const saved = localStorage.getItem('orbsync_term_history');
     if (saved) return JSON.parse(saved);
     return [
-      { id: '1', type: 'output', text: 'Pompeli Terminal v1.0.0' },
+      { id: '1', type: 'output', text: 'OrbSync Terminal v1.0.0' },
       { id: '2', type: 'output', text: 'Conectado ao ambiente local. Pressione TAB para sugestões ou Setas para histórico.' },
       { id: '3', type: 'output', text: 'Dica: Digite "ai <seu pedido>" para pedir ajuda à Inteligência Artificial (ex: ai listar arquivos).' }
     ];
@@ -59,12 +59,12 @@ export default function GitPage() {
   };
 
   useEffect(() => {
-    localStorage.setItem('pompeli_term_history', JSON.stringify(history));
+    localStorage.setItem('orbsync_term_history', JSON.stringify(history));
     scrollToBottom();
   }, [history]);
 
   useEffect(() => {
-    localStorage.setItem('pompeli_term_cmd_history', JSON.stringify(commandHistory));
+    localStorage.setItem('orbsync_term_cmd_history', JSON.stringify(commandHistory));
   }, [commandHistory]);
 
   const handleCommand = async () => {
@@ -112,7 +112,7 @@ export default function GitPage() {
     if (cmd === 'clear') {
       const emptyHistory: TerminalLine[] = [];
       setHistory(emptyHistory);
-      localStorage.removeItem('pompeli_term_history');
+      localStorage.removeItem('orbsync_term_history');
       return;
     }
 

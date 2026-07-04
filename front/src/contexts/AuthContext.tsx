@@ -20,17 +20,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check for stored auth data on mount
-    const storedUser = localStorage.getItem('pompeli_user');
-    const storedToken = localStorage.getItem('pompeli_access_token');
+    const storedUser = localStorage.getItem('orbsync_user');
+    const storedToken = localStorage.getItem('orbsync_access_token');
 
     if (storedUser && storedToken) {
       try {
         setUser(JSON.parse(storedUser));
         setAccessToken(storedToken);
       } catch {
-        localStorage.removeItem('pompeli_user');
-        localStorage.removeItem('pompeli_access_token');
-        localStorage.removeItem('pompeli_refresh_token');
+        localStorage.removeItem('orbsync_user');
+        localStorage.removeItem('orbsync_access_token');
+        localStorage.removeItem('orbsync_refresh_token');
       }
     }
 
@@ -40,9 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const saveAuth = (userData: AuthUser, tokens: { accessToken: string; refreshToken: string }) => {
     setUser(userData);
     setAccessToken(tokens.accessToken);
-    localStorage.setItem('pompeli_user', JSON.stringify(userData));
-    localStorage.setItem('pompeli_access_token', tokens.accessToken);
-    localStorage.setItem('pompeli_refresh_token', tokens.refreshToken);
+    localStorage.setItem('orbsync_user', JSON.stringify(userData));
+    localStorage.setItem('orbsync_access_token', tokens.accessToken);
+    localStorage.setItem('orbsync_refresh_token', tokens.refreshToken);
   };
 
   const login = async (email: string, password: string) => {
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    const refreshToken = localStorage.getItem('pompeli_refresh_token');
+    const refreshToken = localStorage.getItem('orbsync_refresh_token');
     if (refreshToken) {
       try {
         await authApi.logout(refreshToken);
@@ -67,11 +67,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser(null);
     setAccessToken(null);
-    localStorage.removeItem('pompeli_user');
-    localStorage.removeItem('pompeli_access_token');
-    localStorage.removeItem('pompeli_refresh_token');
-    localStorage.removeItem('pompeli_term_history');
-    localStorage.removeItem('pompeli_term_cmd_history');
+    localStorage.removeItem('orbsync_user');
+    localStorage.removeItem('orbsync_access_token');
+    localStorage.removeItem('orbsync_refresh_token');
+    localStorage.removeItem('orbsync_term_history');
+    localStorage.removeItem('orbsync_term_cmd_history');
     sessionStorage.removeItem('splashShown');
   };
 

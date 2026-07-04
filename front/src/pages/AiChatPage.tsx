@@ -92,7 +92,7 @@ export default function AiChatPage() {
   const { user } = useAuth();
   const [chatId, setChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
-    { id: 'welcome', sender: 'ai', text: 'Olá! Sou a assistente IA da Pompeli conectada ao seu Workspace. Como posso ajudar com seus projetos ou documentos hoje?' }
+    { id: 'welcome', sender: 'ai', text: 'Olá! Sou a assistente IA da OrbSync conectada ao seu Workspace. Como posso ajudar com seus projetos ou documentos hoje?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);

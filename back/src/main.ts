@@ -16,6 +16,6 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
-  console.log(`🚀 Pompeli One - Backend rodando em http://localhost:${port}`);
+  console.log(`🚀 OrbSync One - Backend rodando em http://localhost:${port}`);
 }
 bootstrap();

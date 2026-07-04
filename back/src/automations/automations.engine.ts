@@ -102,7 +102,7 @@ export class AutomationEngineService {
 
     if (icon === 'ai') {
       const prompt = aiPrompt || 'Resuma o card';
-      const aiResponse = `**[Agente IA Pompeli]**\nRecebi o prompt: *"${prompt}"*\n\nO card "${card.title}" foi processado via IA DevOps. A complexidade desta tarefa foi categorizada como moderada.\n\n*Nota: Esta é uma execução real acionada por um Workflow Node-Based!*`;
+      const aiResponse = `**[Agente IA OrbSync]**\nRecebi o prompt: *"${prompt}"*\n\nO card "${card.title}" foi processado via IA DevOps. A complexidade desta tarefa foi categorizada como moderada.\n\n*Nota: Esta é uma execução real acionada por um Workflow Node-Based!*`;
       
       this.logger.log(`🧠 [IA SIMULADA] Processando prompt para o card ${card.title}...`);
       

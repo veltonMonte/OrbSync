@@ -84,7 +84,7 @@ export class AiService {
           }
         });
 
-        let contextDump = 'DADOS DO USUÁRIO NO SISTEMA POMPELI:\n';
+        let contextDump = 'DADOS DO USUÁRIO NO SISTEMA ORBSYNC:\n';
         for (const ws of workspaces) {
           contextDump += `Workspace: ${ws.name}\n`;
           for (const proj of ws.projects) {
@@ -101,7 +101,7 @@ export class AiService {
           }
         }
 
-        const systemPrompt = `Você é o assistente virtual do Pompeli, uma plataforma de produtividade. 
+        const systemPrompt = `Você é o assistente virtual do OrbSync, uma plataforma de produtividade. 
 Você tem acesso aos dados do usuário. Seja direto e ajude-o com as informações abaixo.
 ${contextDump}
 

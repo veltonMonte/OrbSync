@@ -1,4 +1,4 @@
-// Pompeli — Prisma Schema
+// OrbSync — Prisma Schema
 // Plataforma inteligente de produtividade
 
 generator client {

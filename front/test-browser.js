@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
   
   // Fill login
   await page.fill('input[type="email"]', 'velton@gmail.com');
-  await page.fill('input[type="password"]', 'pompeli123'); // assuming standard dev password
+  await page.fill('input[type="password"]', 'orbsync123'); // assuming standard dev password
   await page.click('button[type="submit"]');
   
   await page.waitForTimeout(2000);

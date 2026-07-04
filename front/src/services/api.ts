@@ -22,7 +22,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export async function authFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
-  const token = localStorage.getItem('pompeli_access_token');
+  const token = localStorage.getItem('orbsync_access_token');
   const headers = new Headers(options.headers || {});
   
   if (token) {
@@ -39,9 +39,9 @@ export async function authFetch(endpoint: string, options: RequestInit = {}): Pr
   });
 
   if (response.status === 401) {
-    localStorage.removeItem('pompeli_user');
-    localStorage.removeItem('pompeli_access_token');
-    localStorage.removeItem('pompeli_refresh_token');
+    localStorage.removeItem('orbsync_user');
+    localStorage.removeItem('orbsync_access_token');
+    localStorage.removeItem('orbsync_refresh_token');
     window.location.href = '/login';
     throw new Error('Sessão expirada. Faça login novamente.');
   }
