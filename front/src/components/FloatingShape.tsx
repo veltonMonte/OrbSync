@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float } from '@react-three/drei';
-import { useRef, useEffect, useState } from 'react';
+import { Float, useTexture } from '@react-three/drei';
+import { useRef, useEffect, useState, Suspense } from 'react';
 import * as THREE from 'three';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
@@ -16,67 +16,42 @@ interface ShapeProps {
   floatIntensity?: number;
 }
 
-function useSvgTexture(svgString: string) {
-  const [texture, setTexture] = useState<THREE.Texture | null>(null);
-  
-  useEffect(() => {
-    const img = new Image();
-    img.src = 'data:image/svg+xml;base64,' + btoa(svgString);
-    img.onload = () => {
-      const tex = new THREE.Texture(img);
-      tex.needsUpdate = true;
-      setTexture(tex);
-    };
-  }, [svgString]);
-
-  return texture;
-}
-
-const earthSvg = `<svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
+const earthSvgUri = 'data:image/svg+xml;base64,' + btoa(`<svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="256" fill="#3b82f6"/>
   <path d="M 50 100 Q 80 50 120 80 T 150 150 T 80 180 Z" fill="#22c55e"/>
   <path d="M 300 80 Q 350 40 400 90 T 450 160 T 320 190 Z" fill="#22c55e"/>
   <circle cx="220" cy="60" r="25" fill="#22c55e"/>
   <circle cx="480" cy="200" r="30" fill="#22c55e"/>
-</svg>`;
+</svg>`);
 
-const marsSvg = `<svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="256" fill="#ef4444"/>
-  <circle cx="100" cy="80" r="40" fill="#b91c1c"/>
-  <circle cx="100" cy="80" r="30" fill="#ef4444"/>
-  <circle cx="350" cy="150" r="50" fill="#b91c1c"/>
-  <circle cx="350" cy="150" r="40" fill="#ef4444"/>
-  <circle cx="200" cy="190" r="25" fill="#b91c1c"/>
-  <circle cx="450" cy="60" r="20" fill="#b91c1c"/>
-</svg>`;
+const jupiterSvgUri = 'data:image/svg+xml;base64,' + btoa(`<svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="256" fill="#fde68a"/>
+  <rect x="0" y="40" width="512" height="30" fill="#d97706"/>
+  <rect x="0" y="100" width="512" height="50" fill="#b45309"/>
+  <rect x="0" y="180" width="512" height="20" fill="#d97706"/>
+  <ellipse cx="250" cy="125" rx="40" ry="20" fill="#ef4444"/>
+</svg>`);
 
 function EarthPlanet() {
-  const tex = useSvgTexture(earthSvg);
+  const tex = useTexture(earthSvgUri);
   return (
     <group>
-      {tex ? (
-        <mesh><sphereGeometry args={[0.5, 32, 32]} /><meshStandardMaterial map={tex} roughness={0.7} /></mesh>
-      ) : (
-        <mesh><sphereGeometry args={[0.5, 32, 32]} /><meshStandardMaterial color="#3b82f6" roughness={0.7} /></mesh>
-      )}
+      <mesh><sphereGeometry args={[0.5, 32, 32]} /><meshStandardMaterial map={tex} roughness={0.7} /></mesh>
       {/* Lua (Moon) */}
       <mesh position={[0.8, 0.4, 0]}><sphereGeometry args={[0.1, 16, 16]} /><meshStandardMaterial color="#e2e8f0" roughness={0.4} /></mesh>
     </group>
   );
 }
 
-function MarsPlanet() {
-  const tex = useSvgTexture(marsSvg);
+function JupiterPlanet() {
+  const tex = useTexture(jupiterSvgUri);
   return (
     <group>
-      {tex ? (
-        <mesh><sphereGeometry args={[0.45, 32, 32]} /><meshStandardMaterial map={tex} roughness={0.8} /></mesh>
-      ) : (
-        <mesh><sphereGeometry args={[0.45, 32, 32]} /><meshStandardMaterial color="#ef4444" roughness={0.8} /></mesh>
-      )}
-      {/* Luas pequenas (Fobos e Deimos) */}
-      <mesh position={[-0.6, 0.2, 0.2]}><sphereGeometry args={[0.08, 16, 16]} /><meshStandardMaterial color="#fca5a5" roughness={0.6} /></mesh>
-      <mesh position={[0.5, -0.3, -0.2]}><sphereGeometry args={[0.05, 16, 16]} /><meshStandardMaterial color="#fca5a5" roughness={0.6} /></mesh>
+      <mesh><sphereGeometry args={[0.55, 32, 32]} /><meshStandardMaterial map={tex} roughness={0.7} /></mesh>
+      {/* Luas de Jupiter (Europa, Ganimedes...) */}
+      <mesh position={[-0.7, 0.3, 0.2]}><sphereGeometry args={[0.08, 16, 16]} /><meshStandardMaterial color="#fcd34d" roughness={0.5} /></mesh>
+      <mesh position={[0.6, -0.4, -0.2]}><sphereGeometry args={[0.06, 16, 16]} /><meshStandardMaterial color="#e2e8f0" roughness={0.5} /></mesh>
+      <mesh position={[0.2, 0.6, 0.4]}><sphereGeometry args={[0.05, 16, 16]} /><meshStandardMaterial color="#fdba74" roughness={0.5} /></mesh>
     </group>
   );
 }
@@ -132,9 +107,11 @@ function Shape({ type, targetPosition, targetScale = 1, scale = 1, speed = 2, fl
     <group ref={outerRef}>
       <Float speed={speed} rotationIntensity={0.5} floatIntensity={floatIntensity}>
         <group ref={innerRef} scale={scale}>
-          {type === 'diamond' && <EarthPlanet />}
-          {type === 'gem' && <MarsPlanet />}
-          {type === 'planet' && <SaturnPlanet />}
+          <Suspense fallback={null}>
+            {type === 'diamond' && <EarthPlanet />}
+            {type === 'gem' && <JupiterPlanet />}
+            {type === 'planet' && <SaturnPlanet />}
+          </Suspense>
         </group>
       </Float>
     </group>
@@ -168,10 +145,10 @@ export function Floating3DBackground() {
   }, []);
 
   // Definindo posições e tamanhos baseados no estado
-  let diamondPos: [number, number, number] = isMobile ? [-2.0, 1.0, -2] : [-3.5, 1.0, -2];
-  let gemPos: [number, number, number] = isMobile ? [-3.0, -1.5, -1] : [-6.0, -1.5, -1];
-  let planetPos: [number, number, number] = isMobile ? [-1.5, -2.5, -3] : [-2.5, -2.5, -3];
-
+  let diamondPos: [number, number, number] = isMobile ? [-2.0, 1.0, -2] : [-3.5, 1.5, -2]; // Earth
+  let gemPos: [number, number, number] = isMobile ? [-3.0, -1.5, -1] : [-5.0, -2.0, -1]; // Jupiter
+  let planetPos: [number, number, number] = isMobile ? [-1.5, -2.5, -3] : [-2.0, -3.0, -3]; // Saturn
+  
   let diamondTargetScale = isMobile ? 0.6 : 1;
   let gemTargetScale = isMobile ? 0.6 : 1;
   let planetTargetScale = isMobile ? 0.6 : 1;
@@ -182,19 +159,19 @@ export function Floating3DBackground() {
     planetPos = isMobile ? [0, 1.8, 1] : [1.0, 0, 1];
     gemPos = isMobile ? [0, 0, 1] : [2.4, 0, 1];
     diamondPos = isMobile ? [0, -1.8, 1] : [3.8, 0, 1];
-
+    
     // Escalas ajustadas individualmente para que fiquem EXATAMENTE do mesmo tamanho visual
     planetTargetScale = isMobile ? 0.25 : 0.38;
     gemTargetScale = isMobile ? 0.18 : 0.25;
     diamondTargetScale = isMobile ? 0.2 : 0.3;
   } else if (animState === 'dashboard') {
-    // Se espalham pelas extremidades
-    diamondPos = isMobile ? [3.0, 3.5, -4] : [8.5, 3.5, -4];
-    gemPos = isMobile ? [-3.5, -3.5, -3] : [-8.5, -3.5, -3];
-    planetPos = isMobile ? [-3.0, 3.5, -3] : [-7.5, 3.5, -3];
-    diamondTargetScale = isMobile ? 0.6 : 1;
-    gemTargetScale = isMobile ? 0.6 : 1;
-    planetTargetScale = isMobile ? 0.6 : 1;
+    // Se espalham pelas extremidades, mas mais contidos na tela
+    diamondPos = isMobile ? [2.5, 3.0, -4] : [6.5, 3.0, -4]; // Earth top-right
+    gemPos = isMobile ? [-2.5, -2.5, -3] : [-6.0, -2.5, -3]; // Jupiter bottom-left
+    planetPos = isMobile ? [-2.5, 3.0, -3] : [-5.5, 3.0, -3]; // Saturn top-left
+    diamondTargetScale = isMobile ? 0.6 : 0.9;
+    gemTargetScale = isMobile ? 0.6 : 0.9;
+    planetTargetScale = isMobile ? 0.6 : 0.9;
   }
 
   return (
