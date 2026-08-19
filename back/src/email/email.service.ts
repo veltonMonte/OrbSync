@@ -24,7 +24,8 @@ export class EmailService {
   }
 
   async sendVerificationEmail(email: string, token: string) {
-    const verificationUrl = `http://localhost:5173/verify?token=${token}`;
+    const frontendUrl = process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:3000';
+    const verificationUrl = `${frontendUrl}/verify?token=${token}`;
     
     if (!this.transporter) {
       this.logger.debug(`[MOCK EMAIL] Verification link for ${email}: ${verificationUrl}`);
@@ -66,7 +67,8 @@ export class EmailService {
   }
 
   async sendPasswordResetEmail(email: string, token: string) {
-    const resetUrl = `http://localhost:5173/reset-password?token=${token}`;
+    const frontendUrl = process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
     
     if (!this.transporter) {
       this.logger.debug(`[MOCK EMAIL] Password reset link for ${email}: ${resetUrl}`);

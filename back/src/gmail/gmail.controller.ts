@@ -17,10 +17,11 @@ export class GmailController {
   @Get('auth')
   async startAuth(@Req() req: any, @Res() res: any) {
     try {
+      const frontendUrl = process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:3000';
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
-        'http://localhost:5173/configuracoes'
+        `${frontendUrl}/configuracoes`
       );
       
       const scopes = [
@@ -48,10 +49,11 @@ export class GmailController {
     if (!code) return res.status(400).json({ success: false, message: 'Código não fornecido' });
 
     try {
+      const frontendUrl = process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:3000';
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
-        'http://localhost:5173/configuracoes'
+        `${frontendUrl}/configuracoes`
       );
 
       const { tokens } = await oauth2Client.getToken(code);
@@ -94,10 +96,11 @@ export class GmailController {
         return res.status(400).json({ success: false, message: 'Nenhuma integração do Google encontrada.' });
       }
 
+      const frontendUrl = process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:3000';
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
-        'http://localhost:5173/configuracoes'
+        `${frontendUrl}/configuracoes`
       );
       oauth2Client.setCredentials({
         access_token: integration.accessToken,

@@ -68,6 +68,7 @@ export class AuthController {
   async googleAuthRedirect(@Req() req: any, @Res() res: any) {
     const loginData = await this.authService.googleLogin(req.user);
     const userStr = encodeURIComponent(JSON.stringify(loginData.user));
-    res.redirect(`http://localhost:5173/auth/callback?accessToken=${loginData.accessToken}&refreshToken=${loginData.refreshToken}&user=${userStr}`);
+    const frontendUrl = process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/auth/callback?accessToken=${loginData.accessToken}&refreshToken=${loginData.refreshToken}&user=${userStr}`);
   }
 }

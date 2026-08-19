@@ -27,10 +27,11 @@ export class GmailService {
 
   private async processEmailsForUser(integration: any) {
     try {
+      const frontendUrl = process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:3000';
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
-        'http://localhost:5173/configuracoes'
+        `${frontendUrl}/configuracoes`
       );
       oauth2Client.setCredentials({
         access_token: integration.accessToken,
