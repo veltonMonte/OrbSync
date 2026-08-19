@@ -13,7 +13,7 @@ async function bootstrap() {
   }));
 
   // Habilita CORS para o frontend se comunicar com o backend
-  const configuredOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
+  const configuredOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
   const allowedOrigins = [
     configuredOrigin,
     'http://localhost:5173',
@@ -24,7 +24,13 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      // Em desenvolvimento, aceita qualquer localhost, 127.0.0.1, LAN (192.168.x, 10.x) ou Tailscale (100.x)
+      const isAllowed =
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        /^http:\/\/(localhost|127\.0\.0\.1|100\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/.test(origin);
+
+      if (isAllowed || process.env.NODE_ENV !== 'production') {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
