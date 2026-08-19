@@ -13,11 +13,6 @@ export default function OAuthCallbackPage() {
     const refreshToken = searchParams.get('refreshToken');
     const userStr = searchParams.get('user');
 
-    // Clean up sensitive tokens from address bar/history immediately
-    if (window.location.search) {
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
     if (accessToken && refreshToken && userStr) {
       try {
         const user = JSON.parse(decodeURIComponent(userStr)) as AuthUser;
