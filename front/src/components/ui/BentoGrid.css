@@ -1,0 +1,208 @@
+/* ═══════════════════════════════════════════════
+   BENTO GRID — Editorial Technical (Vanilla CSS)
+   ═══════════════════════════════════════════════ */
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1rem;
+  padding: 1rem;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .bento-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.bento-item {
+  position: relative;
+  padding: 1.25rem;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all var(--duration-normal) var(--ease-in-out);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  will-change: transform;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+}
+
+.bento-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  border-color: var(--border-strong);
+}
+
+.bento-item.col-span-2 {
+  grid-column: span 1;
+}
+
+@media (min-width: 768px) {
+  .bento-item.col-span-2 {
+    grid-column: span 2;
+  }
+}
+
+.bento-item.persistent-hover,
+.bento-item:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Background Dots Layer */
+.bento-item-dots-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--duration-normal);
+  background-image: radial-gradient(circle at center, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 6px 6px;
+  z-index: -1;
+}
+
+.bento-item:hover .bento-item-dots-bg,
+.bento-item.persistent-hover .bento-item-dots-bg {
+  opacity: 1;
+}
+
+/* Content Container */
+.bento-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+.bento-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Icon */
+.bento-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  transition: all var(--duration-normal);
+}
+
+.bento-item:hover .bento-icon {
+  background: var(--bg-surface);
+  color: var(--accent);
+}
+
+/* Status Badge */
+.bento-status {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(4px);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  transition: all var(--duration-normal);
+}
+
+.bento-item:hover .bento-status {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* Text Area */
+.bento-text-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.bento-title {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 1rem;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+}
+
+.bento-meta {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.bento-description {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Footer / Tags */
+.bento-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto; /* Push to bottom */
+  padding-top: 0.5rem;
+}
+
+.bento-tags {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.bento-tag {
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  transition: all var(--duration-normal);
+}
+
+.bento-item:hover .bento-tag {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* CTA */
+.bento-cta {
+  font-size: 0.75rem;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity var(--duration-normal);
+}
+
+.bento-item:hover .bento-cta,
+.bento-item.persistent-hover .bento-cta {
+  opacity: 1;
+}
+
+/* Gradient Sub-layer */
+.bento-gradient-layer {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(to bottom right, transparent, rgba(255,255,255,0.03), transparent);
+  opacity: 0;
+  transition: opacity var(--duration-normal);
+}
+
+.bento-item:hover .bento-gradient-layer,
+.bento-item.persistent-hover .bento-gradient-layer {
+  opacity: 1;
+}

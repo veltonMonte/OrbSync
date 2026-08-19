@@ -2,14 +2,21 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavLink, Outlet } from 'react-router-dom';
-import { FiHome, FiFolder, FiFileText, FiMessageCircle, FiTerminal, FiLogOut } from 'react-icons/fi';
+import { FiHome, FiFolder, FiFileText, FiMessageCircle, FiLogOut, FiBell, FiSettings, FiTarget, FiGithub, FiActivity, FiKey, FiBook, FiSend, FiShield } from 'react-icons/fi';
+import NotificationsPanel from '../components/NotificationsPanel';
+import NotificationPopup from '../components/NotificationPopup';
+import { notificationsApi } from '../services/notifications';
+import { Modal } from '../components/ui/Modal';
+import logoImg from '../assets/logo.png';
 import './DashboardLayout.css';
 
 export default function DashboardLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, acceptTerms } = useAuth();
   const [showSplash, setShowSplash] = useState(() => {
     return !sessionStorage.getItem('splashShown');
   });
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (showSplash) {
@@ -20,6 +27,53 @@ export default function DashboardLayout() {
       return () => clearTimeout(timer);
     }
   }, [showSplash]);
+
+  const [showFirstLoginTerms, setShowFirstLoginTerms] = useState(false);
+  const [isAcceptingTerms, setIsAcceptingTerms] = useState(false);
+
+  useEffect(() => {
+    if (user && !user.termsAcceptedAt) {
+      setShowFirstLoginTerms(true);
+    } else {
+      setShowFirstLoginTerms(false);
+    }
+  }, [user]);
+
+  const handleAcceptFirstLoginTerms = async () => {
+    setIsAcceptingTerms(true);
+    try {
+      await acceptTerms();
+      setShowFirstLoginTerms(false);
+    } catch (e) {
+      console.error('Error accepting terms', e);
+      if (user) {
+        const updatedUser = { ...user, termsAcceptedAt: new Date().toISOString() };
+        localStorage.setItem('fluxionai_user', JSON.stringify(updatedUser));
+      }
+      setShowFirstLoginTerms(false);
+    } finally {
+      setIsAcceptingTerms(false);
+    }
+  };
+
+  const handleDeclineFirstLoginTerms = () => {
+    logout();
+  };
+
+  // Fetch initial unread count
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const data = await notificationsApi.getUnreadCount();
+        setUnreadCount(data.count);
+      } catch (error) {
+        console.error('Failed to fetch unread count', error);
+      }
+    };
+    if (user) {
+      fetchUnread();
+    }
+  }, [user]);
 
   return (
     <div className="dashboard-layout">
@@ -32,73 +86,207 @@ export default function DashboardLayout() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
           >
-            <div className="dashboard-splash-logo">Orb<span>Sync</span></div>
+            <div className="dashboard-splash-logo" style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}>
+              <img src={logoImg} alt="FluxionIA Logo" style={{ height: '60px' }} />
+              <span>FluxionIA<span className="sidebar-logo-dot" /></span>
+            </div>
           </motion.div>
         ) : (
           <motion.div 
             key="content"
+            className="dashboard-app-wrapper"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
-            style={{ width: '100%', display: 'flex', flexDirection: 'column' }}
           >
-            {/* Fixed Pill Navbar */}
-            <div className="dashboard-header-wrapper">
-              <motion.header
-                className="dashboard-header"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              >
-                <div className="dashboard-brand">
-                  <span className="dashboard-logo">Orb<span className="dashboard-logo-1">Sync</span></span>
-                </div>
+            {/* Sidebar Navigation */}
+            <aside className="dashboard-sidebar">
+              <div className="sidebar-header">
+                <span className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <img src={logoImg} alt="FluxionIA Logo" style={{ height: '32px' }} />
+                  <span>FluxionIA<span className="sidebar-logo-dot" /></span>
+                </span>
+              </div>
 
-                <nav className="dashboard-nav">
-                  <NavLink to="/" end className={({ isActive }) => `dashboard-nav-link ${isActive ? 'active' : ''}`}>
-                    <FiHome className="dashboard-nav-icon" />
-                    <span className="dashboard-nav-text">Início</span>
+              <div className="sidebar-nav-section">
+                <div className="sidebar-nav-title">Workspace</div>
+                <nav className="sidebar-nav">
+                  <NavLink to="/" end className={({ isActive }) => `sidebar-nav-link ${isActive ? 'active' : ''}`}>
+                    <FiHome className="sidebar-icon" />
+                    <span>Overview</span>
                   </NavLink>
-                  <NavLink to="/projetos" className={({ isActive }) => `dashboard-nav-link ${isActive ? 'active' : ''}`}>
-                    <FiFolder className="dashboard-nav-icon" />
-                    <span className="dashboard-nav-text">Projetos</span>
+                  <NavLink to="/projetos" className={({ isActive }) => `sidebar-nav-link ${isActive ? 'active' : ''}`}>
+                    <FiFolder className="sidebar-icon" />
+                    <span>Projects</span>
                   </NavLink>
-                  <NavLink to="/automacoes" className={({ isActive }) => `dashboard-nav-link ${isActive ? 'active' : ''}`}>
-                    <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg" className="dashboard-nav-icon"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                    <span className="dashboard-nav-text">Automações</span>
+                  <NavLink to="/docs" className={({ isActive }) => `sidebar-nav-link ${isActive ? 'active' : ''}`}>
+                    <FiFileText className="sidebar-icon" />
+                    <span>Documents</span>
                   </NavLink>
-                  <NavLink to="/docs" className={({ isActive }) => `dashboard-nav-link ${isActive ? 'active' : ''}`}>
-                    <FiFileText className="dashboard-nav-icon" />
-                    <span className="dashboard-nav-text">Docs</span>
-                  </NavLink>
-                  <NavLink to="/chat" className={({ isActive }) => `dashboard-nav-link ${isActive ? 'active' : ''}`}>
-                    <FiMessageCircle className="dashboard-nav-icon" />
-                    <span className="dashboard-nav-text">IA Chat</span>
-                  </NavLink>
-                  <NavLink to="/dev" className={({ isActive }) => `dashboard-nav-link ${isActive ? 'active' : ''}`}>
-                    <FiTerminal className="dashboard-nav-icon" />
-                    <span className="dashboard-nav-text">DevOps</span>
+                  <NavLink to="/leads" className={({ isActive }) => `sidebar-nav-link ${isActive ? 'active' : ''}`}>
+                    <FiTarget className="sidebar-icon" />
+                    <span>CRM / Leads</span>
                   </NavLink>
                 </nav>
+              </div>
 
-                <div className="dashboard-user">
-                  <div className="dashboard-avatar">
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+
+              <div className="sidebar-nav-section">
+                <div className="sidebar-nav-title">Developer</div>
+                <nav className="sidebar-nav">
+                  <NavLink to="/api-keys" className={({ isActive }) => `sidebar-nav-link ${isActive ? 'active' : ''}`}>
+                    <FiKey className="sidebar-icon" />
+                    <span>API Keys</span>
+                  </NavLink>
+                  <NavLink to="/api-docs" className={({ isActive }) => `sidebar-nav-link ${isActive ? 'active' : ''}`}>
+                    <FiBook className="sidebar-icon" />
+                    <span>API Docs</span>
+                  </NavLink>
+                  <NavLink to="/api-tester" className={({ isActive }) => `sidebar-nav-link ${isActive ? 'active' : ''}`}>
+                    <FiSend className="sidebar-icon" />
+                    <span>API Studio</span>
+                  </NavLink>
+                </nav>
+              </div>
+
+              <div className="sidebar-nav-section">
+                <div className="sidebar-nav-title">Integrations</div>
+                <nav className="sidebar-nav">
+                  <NavLink to="/github" className={({ isActive }) => `sidebar-nav-link ${isActive ? 'active' : ''}`}>
+                    <FiGithub className="sidebar-icon" />
+                    <span>GitHub Insights</span>
+                  </NavLink>
+                </nav>
+              </div>
+
+              <div className="sidebar-nav-section">
+                <div className="sidebar-nav-title">AI</div>
+                <nav className="sidebar-nav">
+                  <NavLink to="/chat" className={({ isActive }) => `sidebar-nav-link ${isActive ? 'active' : ''}`}>
+                    <FiMessageCircle className="sidebar-icon" />
+                    <span>AI Chat</span>
+                  </NavLink>
+                </nav>
+              </div>
+
+              <div className="sidebar-nav-section">
+                <div className="sidebar-nav-title">System</div>
+                <nav className="sidebar-nav">
+                  <NavLink to="/monitor" className={({ isActive }) => `sidebar-nav-link ${isActive ? 'active' : ''}`}>
+                    <FiActivity className="sidebar-icon" />
+                    <span>Monitoring</span>
+                  </NavLink>
+                  <NavLink to="/configuracoes" className={({ isActive }) => `sidebar-nav-link ${isActive ? 'active' : ''}`}>
+                    <FiSettings className="sidebar-icon" />
+                    <span>Settings</span>
+                  </NavLink>
+                </nav>
+              </div>
+
+              <div className="sidebar-footer">
+
+                <div className="sidebar-user-card">
+                  <div className="user-avatar">
+                    {user?.avatarUrl ? (
+                      <img src={user.avatarUrl} alt={user?.name || 'User'} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      user?.name?.charAt(0).toUpperCase() || 'U'
+                    )}
                   </div>
-                  <div className="dashboard-user-info">
-                    <span className="dashboard-user-name">{user?.name}</span>
-                    <span className="dashboard-user-email">{user?.email}</span>
+                  <div className="user-info">
+                    <span className="user-name">{user?.name}</span>
+                    <span className="user-email">{user?.email}</span>
                   </div>
-                  <button className="dashboard-logout" onClick={logout}>
-                    <FiLogOut className="dashboard-logout-icon" />
-                    <span className="dashboard-logout-text">Sair</span>
+                </div>
+              </div>
+            </aside>
+
+            {/* Main Content Area */}
+            <main className="dashboard-main-content">
+              {/* Topbar inside main content for mobile or global actions */}
+              <header className="dashboard-topbar">
+                <div className="topbar-breadcrumbs">
+                  {/* Breadcrumbs can go here in the future */}
+                </div>
+                <div className="topbar-actions">
+                  <button className="icon-button notification-button" onClick={() => setIsNotificationsOpen(true)}>
+                    <FiBell size={20} />
+                    {unreadCount > 0 && <span className="notification-badge" />}
+                  </button>
+                  <button className="icon-button logout-button" onClick={logout} title="Sair">
+                    <FiLogOut size={20} />
                   </button>
                 </div>
-              </motion.header>
-            </div>
+              </header>
 
-            {/* Main Content Rendered by Outlet */}
-            <Outlet />
+              <div className="dashboard-page-container">
+                <Outlet />
+              </div>
+            </main>
+            
+            <NotificationsPanel 
+              isOpen={isNotificationsOpen} 
+              onClose={() => setIsNotificationsOpen(false)}
+              onUnreadCountChange={setUnreadCount}
+            />
+            
+            <NotificationPopup />
+
+            {/* First Login Mandatory Terms Modal */}
+            <Modal
+              open={showFirstLoginTerms}
+              onClose={handleDeclineFirstLoginTerms}
+              title="Aceite dos Termos de Serviço & Privacidade"
+              description="Identificamos que este é o seu primeiro acesso à FluxionIA."
+              icon={<FiShield />}
+              size="lg"
+            >
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.6, maxHeight: '55vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.4rem', marginTop: 0 }}>1. Aceitação dos Termos</h4>
+                <p style={{ marginBottom: '1rem' }}>
+                  Para continuar utilizando a plataforma <strong>FluxionIA</strong>, você deve aceitar estes Termos de Serviço e nossa Política de Privacidade. O aceite é armazenado com registro de data e hora no nosso banco de dados.
+                </p>
+
+                <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.4rem' }}>2. Propriedade dos Dados do Workspace</h4>
+                <p style={{ marginBottom: '1rem' }}>
+                  Todos os dados do seu Workspace pertencem exclusivamente à sua empresa. A FluxionIA não compartilha seus dados para treinamento de IAs públicas.
+                </p>
+
+                <h4 style={{ color: 'var(--text-primary)', marginBottom: '0.4rem' }}>3. Bloqueio por Recusa</h4>
+                <p style={{ marginBottom: '0' }}>
+                  Se você recusar este aceite, sua sessão será encerrada por razões de segurança jurídica e você será redirecionado para a tela de login.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
+                <button 
+                  type="button" 
+                  className="stg-btn stg-btn--ghost" 
+                  onClick={handleDeclineFirstLoginTerms}
+                  disabled={isAcceptingTerms}
+                >
+                  Recusar (Encerrar Sessão)
+                </button>
+                <button 
+                  type="button" 
+                  style={{ 
+                    padding: '0.5rem 1.5rem', 
+                    background: 'var(--accent)', 
+                    color: '#09090b', 
+                    fontWeight: 650, 
+                    border: 'none', 
+                    borderRadius: 'var(--radius-md)', 
+                    cursor: isAcceptingTerms ? 'not-allowed' : 'pointer',
+                    opacity: isAcceptingTerms ? 0.7 : 1,
+                    transition: 'all 0.2s ease',
+                  }} 
+                  onClick={handleAcceptFirstLoginTerms}
+                  disabled={isAcceptingTerms}
+                >
+                  {isAcceptingTerms ? 'Processando...' : 'Aceitar e Continuar'}
+                </button>
+              </div>
+            </Modal>
           </motion.div>
         )}
       </AnimatePresence>

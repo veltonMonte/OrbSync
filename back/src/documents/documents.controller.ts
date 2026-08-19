@@ -33,17 +33,20 @@ export class DocumentsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.documentsService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: Request) {
+    const userId = (req as any).user.userId;
+    return this.documentsService.findOne(id, userId);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateDocumentDto) {
-    return this.documentsService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateDocumentDto, @Req() req: Request) {
+    const userId = (req as any).user.userId;
+    return this.documentsService.update(id, dto, userId);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.documentsService.remove(id);
+  remove(@Param('id') id: string, @Req() req: Request) {
+    const userId = (req as any).user.userId;
+    return this.documentsService.remove(id, userId);
   }
 }

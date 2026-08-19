@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FiTerminal, FiRefreshCw } from 'react-icons/fi';
+import { 
+  FiTerminal, FiTrash2, FiCopy
+} from 'react-icons/fi';
 import { terminalService } from '../services/terminal';
 import { aiService } from '../services/ai';
+import { useToast } from '../contexts/ToastContext';
 import './Git.css';
 
 interface TerminalLine {
@@ -18,16 +20,17 @@ const COMMON_COMMANDS = [
 ];
 
 export default function GitPage() {
+  const toast = useToast();
   const [terminalInput, setTerminalInput] = useState('');
   const [commandHistory, setCommandHistory] = useState<string[]>(() => {
-    const saved = localStorage.getItem('orbsync_term_cmd_history');
+    const saved = localStorage.getItem('fluxionai_term_cmd_history');
     return saved ? JSON.parse(saved) : [];
   });
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [draftInput, setDraftInput] = useState('');
   const [currentCwd, setCurrentCwd] = useState('~');
-  const [machineInfo, setMachineInfo] = useState({ username: 'velton', hostname: 'orbsync' });
-  
+  const [machineInfo, setMachineInfo] = useState({ username: 'velton', hostname: 'fluxionia' });
+
   useEffect(() => {
     terminalService.getInfo().then(info => {
       setMachineInfo({ username: info.username, hostname: info.hostname });
@@ -42,37 +45,49 @@ export default function GitPage() {
   }, []);
   
   const [history, setHistory] = useState<TerminalLine[]>(() => {
-    const saved = localStorage.getItem('orbsync_term_history');
+    const saved = localStorage.getItem('fluxionai_term_history');
     if (saved) return JSON.parse(saved);
     return [
-      { id: '1', type: 'output', text: 'OrbSync Terminal v1.0.0' },
-      { id: '2', type: 'output', text: 'Conectado ao ambiente local. Pressione TAB para sugestões ou Setas para histórico.' },
-      { id: '3', type: 'output', text: 'Dica: Digite "ai <seu pedido>" para pedir ajuda à Inteligência Artificial (ex: ai listar arquivos).' }
+      { id: '1', type: 'output', text: 'FluxionIA Terminal v1.0.0 — Conectado ao ambiente local' },
+      { id: '2', type: 'output', text: '// Digite "ai <pedido>" para assistência de IA ou pressione TAB para autocompletar.' }
     ];
   });
   const [isExecuting, setIsExecuting] = useState(false);
   const terminalEndRef = useRef<HTMLDivElement>(null);
-  
 
   const scrollToBottom = () => {
     terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
-    localStorage.setItem('orbsync_term_history', JSON.stringify(history));
+    localStorage.setItem('fluxionai_term_history', JSON.stringify(history));
     scrollToBottom();
   }, [history]);
 
   useEffect(() => {
-    localStorage.setItem('orbsync_term_cmd_history', JSON.stringify(commandHistory));
+    localStorage.setItem('fluxionai_term_cmd_history', JSON.stringify(commandHistory));
   }, [commandHistory]);
+
+  const handleClearTerminal = () => {
+    const initialLines: TerminalLine[] = [
+      { id: Date.now().toString(), type: 'output', text: 'FluxionIA Terminal v1.0.0 — Conectado ao ambiente local' }
+    ];
+    setHistory(initialLines);
+    localStorage.setItem('fluxionai_term_history', JSON.stringify(initialLines));
+    toast.info('Terminal limpo.');
+  };
+
+  const handleCopyHistory = () => {
+    const allText = history.map(h => h.text).join('\n');
+    navigator.clipboard.writeText(allText);
+    toast.success('Histórico do terminal copiado!');
+  };
 
   const handleCommand = async () => {
     if (!terminalInput.trim() || isExecuting) return;
     
     const cmd = terminalInput.trim();
     
-    // Atualiza Histórico de Comandos
     setCommandHistory(prev => {
       const filtered = prev.filter(c => c !== cmd);
       return [...filtered, cmd];
@@ -81,7 +96,6 @@ export default function GitPage() {
     setDraftInput('');
     setTerminalInput('');
     
-    // Adiciona o comando no histórico com o path atual
     const promptPrefix = `${machineInfo.username}@${machineInfo.hostname}:${currentCwd}$ `;
     setHistory(prev => [...prev, { id: Date.now().toString(), type: 'input', text: promptPrefix + cmd }]);
     
@@ -89,12 +103,12 @@ export default function GitPage() {
       const prompt = cmd.substring(3).trim();
       setIsExecuting(true);
       const loadingId = Date.now().toString() + 'loading';
-      setHistory(prev => [...prev, { id: loadingId, type: 'output', text: '> [IA DevOps] Analisando o sistema e gerando comando seguro...' }]);
+      setHistory(prev => [...prev, { id: loadingId, type: 'output', text: '// [IA DevOps] Analisando o sistema e gerando comando seguro...' }]);
       try {
         const res = await aiService.generateTerminalCommand(prompt);
         setHistory(prev => {
           const filtered = prev.filter(h => h.id !== loadingId);
-          return [...filtered, { id: Date.now().toString() + 'aio', type: 'output', text: '[IA DevOps] Comando sugerido preenchido no terminal. Revise e aperte ENTER para executar.' }];
+          return [...filtered, { id: Date.now().toString() + 'aio', type: 'output', text: '// [IA DevOps] Comando sugerido preenchido no terminal. Revise e aperte ENTER para executar.' }];
         });
         setTerminalInput(res.command);
       } catch (e) {
@@ -110,9 +124,7 @@ export default function GitPage() {
     }
 
     if (cmd === 'clear') {
-      const emptyHistory: TerminalLine[] = [];
-      setHistory(emptyHistory);
-      localStorage.removeItem('orbsync_term_history');
+      handleClearTerminal();
       return;
     }
 
@@ -120,10 +132,8 @@ export default function GitPage() {
     try {
       const res = await terminalService.executeCommand(cmd);
       
-      // Atualiza o diretório atual se a API retornar um novo cwd
       if (res.cwd) {
         let displayCwd = res.cwd;
-        // Simplifica a home do usuário para ~
         if (displayCwd.startsWith('/home/' + machineInfo.username) || displayCwd.startsWith('C:\\Users\\' + machineInfo.username)) {
           displayCwd = displayCwd.replace(new RegExp(`^(/home/${machineInfo.username}|C:\\\\Users\\\\${machineInfo.username})`), '~');
         }
@@ -179,68 +189,72 @@ export default function GitPage() {
     }
   };
 
-
-
-  // Sugestões visuais
   const activeSuggestions = terminalInput 
     ? COMMON_COMMANDS.filter(c => c.startsWith(terminalInput.toLowerCase()) && c !== terminalInput.toLowerCase()).slice(0, 4)
     : [];
 
   return (
     <div className="dev-page">
-      <motion.div 
-        className="dev-container"
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
+      <div className="dev-container">
         
-        {/* Lado Esquerdo: Terminal */}
-        <div className="dev-terminal-section">
-          <div className="dev-header">
-            <FiTerminal className="dev-header-icon" />
-            <h2>Terminal Local</h2>
-            <div style={{ flex: 1 }}></div>
-            {isExecuting && <FiRefreshCw className="dev-spinner" />}
+        {/* Professional Full-Width Terminal Window */}
+        <div className="dev-terminal-section full-width">
+          {/* macOS / VS Code Window Bar */}
+          <div className="terminal-titlebar">
+            <div className="window-controls">
+              <span className="window-dot red"></span>
+              <span className="window-dot yellow"></span>
+              <span className="window-dot green"></span>
+            </div>
+            
+            <div className="titlebar-center">
+              <FiTerminal className="titlebar-icon" />
+              <span className="titlebar-text">Terminal Local</span>
+              <span className="status-indicator-dot" title="Sessão ativa"></span>
+            </div>
+
+            <div className="titlebar-actions">
+              <button className="titlebar-action-btn" onClick={handleCopyHistory} title="Copiar saída">
+                <FiCopy size={13} />
+              </button>
+              <button className="titlebar-action-btn" onClick={handleClearTerminal} title="Limpar terminal">
+                <FiTrash2 size={13} />
+              </button>
+            </div>
           </div>
           
           <div className="terminal-window" onClick={() => document.getElementById('dev-term-input')?.focus()}>
             <div className="terminal-content">
-              <div className="terminal-logo-container" style={{ padding: '1rem 0 2rem 0', opacity: 0.9 }}>
-                <pre style={{ margin: 0, color: '#c084fc', fontFamily: '"Fira Code", "Courier New", monospace', fontSize: '0.9rem', fontWeight: 'bold', lineHeight: 1.2, textShadow: '0 0 10px rgba(192, 132, 252, 0.3)' }}>
-{`  _ __   ___  _ __ ___  _ __   ___| / |
- | '_ \\ / _ \\| '_ \` _ \\| '_ \\ / _ \\ | |
- | |_) | (_) | | | | | | |_) |  __/ | |
- | .__/ \\___/|_| |_| |_| .__/ \\___|_|_|
- |_|                   |_|             `}
-                </pre>
-              </div>
-              
               {history.map(line => (
                 <div key={line.id} className={`terminal-line ${line.type}`}>
-                  {/* Para linhas do tipo input, o prefixo já foi inserido com a cor do texto, ou usamos a classe prompt se quisermos colorir. Vamos colorir a primeira palavra */}
                   {line.type === 'input' ? (
                     <>
-                      <span className="prompt">{line.text.substring(0, line.text.indexOf('$') + 1)} </span>
-                      <span className="text">{line.text.substring(line.text.indexOf('$') + 1)}</span>
+                      <span className="term-prompt-user">{machineInfo.username}@{machineInfo.hostname}</span>
+                      <span className="term-prompt-colon">:</span>
+                      <span className="term-prompt-cwd">{currentCwd}</span>
+                      <span className="term-prompt-symbol">$ </span>
+                      <span className="term-cmd-text">{line.text.substring(line.text.indexOf('$') + 1)}</span>
                     </>
                   ) : (
-                    <span className="text">{line.text}</span>
+                    <span className="term-output-text">{line.text}</span>
                   )}
                 </div>
               ))}
               
-              <div className="terminal-input-row" style={{ position: 'relative' }}>
+              <div className="terminal-input-row">
                 {activeSuggestions.length > 0 && (
                   <div className="terminal-suggestions">
                     {activeSuggestions.map(s => (
                       <div key={s} className="suggestion-item" onClick={(e) => { e.stopPropagation(); setTerminalInput(s); document.getElementById('dev-term-input')?.focus(); }}>
-                        {s} <span className="tab-hint">TAB</span>
+                        <span>{s}</span> <span className="tab-hint">TAB</span>
                       </div>
                     ))}
                   </div>
                 )}
-                <span className="prompt">{machineInfo.username}@{machineInfo.hostname}:{currentCwd}$ </span>
+                <span className="term-prompt-user">{machineInfo.username}@{machineInfo.hostname}</span>
+                <span className="term-prompt-colon">:</span>
+                <span className="term-prompt-cwd">{currentCwd}</span>
+                <span className="term-prompt-symbol">$ </span>
                 <input 
                   id="dev-term-input"
                   type="text" 
@@ -258,7 +272,9 @@ export default function GitPage() {
           </div>
         </div>
 
-      </motion.div>
+      </div>
     </div>
   );
 }
+
+

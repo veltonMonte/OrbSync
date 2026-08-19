@@ -18,4 +18,14 @@ export class CreateProjectDto {
   @IsString()
   @IsNotEmpty()
   workspaceId: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  localPath?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  githubRepo?: string;
 }

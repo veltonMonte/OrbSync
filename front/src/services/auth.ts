@@ -1,9 +1,11 @@
-const API_BASE_URL = 'http://localhost:3001/api';
+import { API_BASE_URL, authFetch } from './api';
 
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  avatarUrl?: string | null;
+  termsAcceptedAt?: string | null;
 }
 
 export interface AuthResponse {
@@ -21,16 +23,17 @@ export interface RegisterPayload {
   name: string;
   email: string;
   password: string;
+  acceptedTerms: boolean;
 }
 
-async function handleAuthResponse(response: Response): Promise<AuthResponse> {
+async function handleAuthResponse(response: Response): Promise<any> {
   const data = await response.json().catch(() => ({ message: response.statusText }));
 
   if (!response.ok) {
     throw new Error(data.message || 'Erro na requisição');
   }
 
-  return data as AuthResponse;
+  return data;
 }
 
 export const authApi = {
@@ -67,5 +70,46 @@ export const authApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
     });
+  },
+
+  resendVerification: async (email: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    return handleAuthResponse(res);
+  },
+
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    return handleAuthResponse(res);
+  },
+
+  resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword }),
+    });
+    return handleAuthResponse(res);
+  },
+
+  verifyEmail: async (token: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE_URL}/auth/verify-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    return handleAuthResponse(res);
+  },
+
+  acceptTerms: async (): Promise<{ success: boolean; termsAcceptedAt?: string }> => {
+    const res = await authFetch('/auth/accept-terms', { method: 'POST' });
+    return res.json();
   },
 };

@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FiFileText, FiFolder, FiSearch, FiEdit3, FiShare2, FiMoreVertical, FiBold, FiItalic, FiList, FiDownload, FiUpload, FiCpu, FiTrash2, FiCheckSquare } from 'react-icons/fi';
+import { 
+  FiFileText, FiSearch, FiShare2, FiMoreVertical, 
+  FiBold, FiItalic, FiList, FiDownload, FiUpload, FiZap, FiTrash2, 
+  FiCheckSquare, FiAlignLeft, FiAlignCenter, FiAlignRight, 
+  FiLink, FiPlus, FiCheck
+} from 'react-icons/fi';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
@@ -10,10 +14,18 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Underline from '@tiptap/extension-underline';
 import CodeBlock from '@tiptap/extension-code-block';
+import { TextStyle } from '@tiptap/extension-text-style';
+import FontFamily from '@tiptap/extension-font-family';
+import Color from '@tiptap/extension-color';
+import TextAlign from '@tiptap/extension-text-align';
+import Link from '@tiptap/extension-link';
 import * as mammoth from 'mammoth';
 import html2pdf from 'html2pdf.js';
 import { aiService } from '../services/ai';
 import { documentsApi, type BackendDocument } from '../services/documents';
+import { Modal } from '../components/ui/Modal';
+import { EmptyState } from '../components/ui/EmptyState';
+import { useToast } from '../contexts/ToastContext';
 import './Docs.css';
 
 interface Document {
@@ -24,15 +36,36 @@ interface Document {
   content: string;
 }
 
-
-
 export default function DocsPage() {
+  const toast = useToast();
   const [documents, setDocuments] = useState<Document[]>([]);
-  
   const [activeDocId, setActiveDocId] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeDocIdRef = useRef(activeDocId);
+  const documentsRef = useRef(documents);
+
+  useEffect(() => {
+    activeDocIdRef.current = activeDocId;
+  }, [activeDocId]);
+
+  useEffect(() => {
+    documentsRef.current = documents;
+  }, [documents]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  const [aiPromptOpen, setAiPromptOpen] = useState(false);
+  const [aiPromptText, setAiPromptText] = useState('');
 
   useEffect(() => {
     const loadDocs = async () => {
@@ -62,32 +95,54 @@ export default function DocsPage() {
     extensions: [
       StarterKit,
       Placeholder.configure({
-        placeholder: 'Pressione "/" para comandos ou comece a digitar...',
+        placeholder: 'Comece a escrever ou pressione "/" para comandos...',
       }),
       Highlight,
       TaskList,
       TaskItem.configure({ nested: true }),
       Underline,
-      CodeBlock
+      CodeBlock,
+      TextStyle,
+      FontFamily,
+      Color,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Link.configure({ openOnClick: true })
     ],
     content: activeDocument?.content || '',
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      if (!activeDocId) return;
+      const currentDocId = activeDocIdRef.current;
+      if (!currentDocId) return;
+
+      setSaveStatus('saving');
 
       setDocuments(prev => {
         const next = prev.map(doc => 
-          doc.id === activeDocId ? { ...doc, content: html, date: 'Atualizado agora' } : doc
+          doc.id === currentDocId ? { ...doc, content: html, date: 'Atualizado agora' } : doc
         );
         return next;
       });
 
-      // Fire and forget update
-      documentsApi.update(activeDocId, activeDocument?.name || 'Sem Título', html).catch(console.error);
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      // Debounce do autosave (800ms) para não sobrecarregar requisições PUT contínuas
+      debounceTimerRef.current = setTimeout(async () => {
+        try {
+          const currentDoc = documentsRef.current.find(d => d.id === currentDocId);
+          const title = currentDoc?.name || 'Sem Título';
+          await documentsApi.update(currentDocId, title, html);
+          setSaveStatus('saved');
+        } catch (error) {
+          console.error('Erro no autosave do documento:', error);
+          setSaveStatus('error');
+        }
+      }, 800);
     },
   });
 
-  // Atualiza o editor quando troca de documento
+  // Sync editor content on active document change
   useEffect(() => {
     if (editor && activeDocument) {
       const currentHtml = editor.getHTML();
@@ -97,7 +152,7 @@ export default function DocsPage() {
     }
   }, [activeDocId, editor]);
 
-  // Atualiza o título do documento baseado no H1
+  // Update doc title from H1 tag
   useEffect(() => {
     if (activeDocument && editor) {
       const html = activeDocument.content;
@@ -116,7 +171,7 @@ export default function DocsPage() {
 
   const handleNewDoc = async () => {
     try {
-      const newDocBackend = await documentsApi.create('Novo Documento', '<h1>Novo Documento</h1><p>Comece a escrever...</p>', 'CUSTOM');
+      const newDocBackend = await documentsApi.create('Novo Documento', '<h1>Novo Documento</h1><p>Comece a escrever aqui...</p>', 'CUSTOM');
       const newDoc: Document = {
         id: newDocBackend.id,
         name: newDocBackend.title,
@@ -124,11 +179,9 @@ export default function DocsPage() {
         type: 'doc',
         content: newDocBackend.content
       };
-      setDocuments(prev => {
-        const next = [newDoc, ...prev];
-        return next;
-      });
+      setDocuments(prev => [newDoc, ...prev]);
       setActiveDocId(newDoc.id);
+      toast.success('Documento criado!');
     } catch (err) {
       console.error(err);
     }
@@ -147,22 +200,29 @@ export default function DocsPage() {
         }
         return next;
       });
+      toast.info('Documento removido.');
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleGenerateAI = async () => {
+  const handleGenerateAI = () => {
     if (!editor) return;
-    const prompt = window.prompt("O que você deseja que a IA escreva neste documento?");
-    if (!prompt) return;
+    setAiPromptText('');
+    setAiPromptOpen(true);
+  };
 
+  const submitAiPrompt = async () => {
+    if (!editor || !aiPromptText.trim()) return;
+
+    setAiPromptOpen(false);
     setIsGenerating(true);
     try {
-      const { html } = await aiService.generateDoc(prompt);
+      const { html } = await aiService.generateDoc(aiPromptText.trim());
       editor.commands.insertContent(html);
+      toast.success('Conteúdo gerado com sucesso!');
     } catch (e) {
-      alert("Erro ao gerar documento com IA.");
+      toast.error('Erro ao gerar texto com IA.');
     } finally {
       setIsGenerating(false);
     }
@@ -185,6 +245,7 @@ export default function DocsPage() {
     };
     // @ts-ignore
     html2pdf().set(opt).from(element).save();
+    toast.success('PDF baixado!');
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -198,146 +259,221 @@ export default function DocsPage() {
         try {
           const result = await mammoth.convertToHtml({ arrayBuffer });
           editor.commands.setContent(result.value);
+          toast.success('DOCX importado com sucesso!');
         } catch (err) {
-          alert("Erro ao ler DOCX");
+          toast.error('Erro ao importar arquivo DOCX.');
         }
       };
       reader.readAsArrayBuffer(file);
     } else {
-      alert("No momento, a importação suporta apenas arquivos .docx para conversão rica.");
+      toast.error('Suporta apenas arquivos .docx');
     }
   };
+
+  // Word and character stats
+  const textContent = editor?.getText() || '';
+  const wordCount = textContent.trim() ? textContent.trim().split(/\s+/).length : 0;
+  const charCount = textContent.length;
 
   const filteredDocs = documents.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="docs-page">
-      <motion.div 
-        className="docs-container"
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        {/* Sidebar */}
+      <div className="docs-container">
+        
+        {/* Left Sidebar: Document List */}
         <div className="docs-sidebar">
-          <div className="docs-sidebar-header">
-            <h2>Documentos</h2>
-            <div className="docs-search">
-              <FiSearch />
-              <input 
-                type="text" 
-                placeholder="Buscar..." 
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-            </div>
+          <div className="docs-sidebar-top">
+            <h2 className="sidebar-title">Documentos</h2>
+            
+            <button className="new-doc-primary-btn" onClick={handleNewDoc}>
+              <FiPlus size={14} /> Novo Documento
+            </button>
+          </div>
+
+          <div className="docs-search-wrapper">
+            <FiSearch className="search-icon" size={13} />
+            <input 
+              type="text" 
+              placeholder="Buscar documentos..." 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
           </div>
           
           <div className="docs-list">
-            {filteredDocs.map((doc, i) => (
-              <motion.div 
-                key={doc.id} 
-                className={`docs-item ${activeDocId === doc.id ? 'active' : ''}`}
-                onClick={() => doc.type === 'doc' && setActiveDocId(doc.id)}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.2, delay: i * 0.05 }}
-              >
-                <div className="docs-item-icon">
-                  {doc.type === 'folder' ? <FiFolder style={{color: '#60a5fa'}} /> : <FiFileText style={{color: '#c084fc'}}/>}
+            {filteredDocs.length > 0 ? (
+              filteredDocs.map((doc) => (
+                <div 
+                  key={doc.id} 
+                  className={`docs-item ${activeDocId === doc.id ? 'active' : ''}`}
+                  onClick={() => doc.type === 'doc' && setActiveDocId(doc.id)}
+                >
+                  <FiFileText className="doc-icon" size={14} />
+                  <div className="docs-item-info">
+                    <span className="docs-item-name" title={doc.name}>
+                      {doc.name || 'Sem Título'}
+                    </span>
+                    <span className="docs-item-date">{doc.date}</span>
+                  </div>
+                  {doc.type === 'doc' && (
+                    <button 
+                      className="docs-item-delete" 
+                      onClick={(e) => handleDeleteDoc(doc.id, e)} 
+                      title="Excluir Documento"
+                      aria-label={`Excluir documento ${doc.name}`}
+                    >
+                      <FiTrash2 size={13} />
+                    </button>
+                  )}
                 </div>
-                <div className="docs-item-info">
-                  <span className="docs-item-name" title={doc.name}>
-                    {doc.name.length > 20 ? doc.name.substring(0, 20) + '...' : doc.name}
-                  </span>
-                  <span className="docs-item-date">{doc.date}</span>
-                </div>
-                {doc.type === 'doc' && (
-                  <button className="docs-item-delete" onClick={(e) => handleDeleteDoc(doc.id, e)} title="Excluir Documento">
-                    <FiTrash2 />
-                  </button>
-                )}
-              </motion.div>
-            ))}
+              ))
+            ) : (
+              <EmptyState 
+                icon={<FiFileText size={20} />}
+                title="Nenhum documento"
+                description={searchQuery ? "Nenhum resultado para a busca." : "Crie um novo documento para começar."}
+                variant="compact"
+                action={!searchQuery ? { label: "Criar Documento", onClick: handleNewDoc } : undefined}
+              />
+            )}
           </div>
-          
-          <button className="docs-new-btn highlight-btn" onClick={handleGenerateAI} disabled={isGenerating} style={{ marginBottom: '1rem' }}>
-            <FiCpu /> {isGenerating ? 'Gerando...' : 'IA Gerar Texto'}
-          </button>
-          
-          <button className="docs-new-btn" onClick={handleNewDoc}>
-            <FiEdit3 /> Novo Documento
+
+          <button className="ai-assist-btn" onClick={handleGenerateAI} disabled={isGenerating} aria-label="Gerar documento com IA">
+            <FiZap size={14} /> {isGenerating ? 'Gerando...' : 'Gerar com IA'}
           </button>
         </div>
 
-        {/* Editor Area */}
+        {/* Right Area: Notion Dark Mode Editor */}
         <div className="docs-editor-area">
-          <motion.div 
-            className="docs-editor-header"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <div className="docs-breadcrumb">
-              Workspace / Projetos / <span className="highlight">{activeDocument?.name}</span>
+          {/* Header Bar */}
+          <header className="docs-editor-header">
+            <div className="docs-header-left">
+              <div className="docs-breadcrumb">
+                <span>Workspace</span> / <span>Documentos</span> / <span className="highlight">{activeDocument?.name || 'Sem Título'}</span>
+              </div>
+              <span className="save-status-badge">
+                {saveStatus === 'saving' && 'Salvando...'}
+                {saveStatus === 'saved' && <><FiCheck size={12} color="#10B981" /> Salvo</>}
+                {saveStatus === 'error' && <span style={{ color: '#ef4444' }}>Erro ao salvar</span>}
+              </span>
             </div>
-            <div className="docs-actions">
-              <button className="docs-action-btn"><FiShare2 /> Compartilhar</button>
-              <button className="docs-icon-btn"><FiMoreVertical /></button>
-            </div>
-          </motion.div>
 
-          <motion.div 
-            className="docs-editor-content"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-          >
-            <div className="docs-editor-toolbar" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.02)', padding: '0.5rem', borderRadius: '12px', flexWrap: 'wrap' }}>
-              <button className={`docs-icon-btn ${editor?.isActive('bold') ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleBold().run()} title="Negrito"><FiBold /></button>
-              <button className={`docs-icon-btn ${editor?.isActive('italic') ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleItalic().run()} title="Itálico"><FiItalic /></button>
-              <button className={`docs-icon-btn ${editor?.isActive('underline') ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleUnderline().run()} title="Sublinhado" style={{textDecoration: 'underline'}}>U</button>
-              <button className={`docs-icon-btn ${editor?.isActive('highlight') ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleHighlight().run()} title="Destacar"><mark style={{background: 'transparent', color: 'inherit'}}>H</mark></button>
+            <div className="docs-actions">
+              <button className="docs-share-btn" aria-label="Compartilhar documento"><FiShare2 size={13} /> Compartilhar</button>
+              <button className="docs-icon-btn" title="Mais opções" aria-label="Mais opções"><FiMoreVertical size={14} /></button>
+            </div>
+          </header>
+
+          <div className="docs-editor-content">
+            {/* Dark Sleek Toolbar */}
+            <div className="docs-editor-toolbar">
+              <select className="docs-toolbar-select" onChange={(e) => editor?.chain().focus().setFontFamily(e.target.value).run()} value={editor?.getAttributes('textStyle').fontFamily || ''} title="Fonte">
+                <option value="">Inter (Padrão)</option>
+                <option value="Arial">Arial</option>
+                <option value="'Fira Code', monospace">Monospace</option>
+                <option value="Georgia, serif">Georgia</option>
+              </select>
               
-              <div style={{ width: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 0.5rem' }}></div>
-              
-              <button className={`docs-icon-btn ${editor?.isActive('heading', { level: 2 }) ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} title="Título 2">H2</button>
-              <button className={`docs-icon-btn ${editor?.isActive('bulletList') ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleBulletList().run()} title="Lista"><FiList /></button>
-              <button className={`docs-icon-btn ${editor?.isActive('taskList') ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleTaskList().run()} title="Checklist"><FiCheckSquare /></button>
-              <button className={`docs-icon-btn ${editor?.isActive('codeBlock') ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleCodeBlock().run()} title="Bloco de Código">{'</>'}</button>
+              <select className="docs-toolbar-select" onChange={(e) => { const val = e.target.value; if (val === 'p') editor?.chain().focus().setParagraph().run(); else editor?.chain().focus().toggleHeading({ level: parseInt(val) as any }).run(); }} value={editor?.isActive('heading') ? editor?.getAttributes('heading').level.toString() : 'p'} title="Estilo de Texto">
+                <option value="p">Texto Normal</option>
+                <option value="1">Título 1</option>
+                <option value="2">Título 2</option>
+                <option value="3">Título 3</option>
+              </select>
+
+              <div className="docs-toolbar-divider"></div>
+
+              <button className={`docs-toolbar-btn ${editor?.isActive('bold') ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleBold().run()} title="Negrito"><FiBold size={13} /></button>
+              <button className={`docs-toolbar-btn ${editor?.isActive('italic') ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleItalic().run()} title="Itálico"><FiItalic size={13} /></button>
+              <button className={`docs-toolbar-btn ${editor?.isActive('underline') ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleUnderline().run()} title="Sublinhado"><span style={{textDecoration: 'underline'}}>U</span></button>
+              <button className={`docs-toolbar-btn ${editor?.isActive('link') ? 'active' : ''}`} onClick={() => { const url = window.prompt('URL do Link:'); if (url) editor?.chain().focus().setLink({ href: url }).run(); }} title="Inserir Link"><FiLink size={13} /></button>
+
+              <div className="docs-toolbar-divider"></div>
+
+              <button className={`docs-toolbar-btn ${editor?.isActive({ textAlign: 'left' }) ? 'active' : ''}`} onClick={() => editor?.chain().focus().setTextAlign('left').run()} title="Alinhar Esquerda"><FiAlignLeft size={13} /></button>
+              <button className={`docs-toolbar-btn ${editor?.isActive({ textAlign: 'center' }) ? 'active' : ''}`} onClick={() => editor?.chain().focus().setTextAlign('center').run()} title="Centralizar"><FiAlignCenter size={13} /></button>
+              <button className={`docs-toolbar-btn ${editor?.isActive({ textAlign: 'right' }) ? 'active' : ''}`} onClick={() => editor?.chain().focus().setTextAlign('right').run()} title="Alinhar Direita"><FiAlignRight size={13} /></button>
+
+              <div className="docs-toolbar-divider"></div>
+
+              <button className={`docs-toolbar-btn ${editor?.isActive('bulletList') ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleBulletList().run()} title="Lista com Marcadores"><FiList size={13} /></button>
+              <button className={`docs-toolbar-btn ${editor?.isActive('taskList') ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleTaskList().run()} title="Lista de Tarefas"><FiCheckSquare size={13} /></button>
+              <button className={`docs-toolbar-btn ${editor?.isActive('codeBlock') ? 'active' : ''}`} onClick={() => editor?.chain().focus().toggleCodeBlock().run()} title="Bloco de Código">{'</>'}</button>
               
               <div style={{ flex: 1 }}></div>
               
               <input type="file" accept=".docx" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileUpload} />
-              <button className="docs-action-btn" onClick={() => fileInputRef.current?.click()}><FiUpload /> Importar DOCX</button>
-              <button className="docs-action-btn" onClick={exportPDF}><FiDownload /> Exportar PDF</button>
+              <button className="docs-action-outline-btn" onClick={() => fileInputRef.current?.click()}><FiUpload size={12} /> Importar</button>
+              <button className="docs-action-outline-btn" onClick={exportPDF}><FiDownload size={12} /> PDF</button>
             </div>
 
+            {/* Notion-like Dark Editor Body */}
             <div className="docs-editor-body">
               {editor && (
                 <BubbleMenu editor={editor} className="bubble-menu">
                   <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''}>
-                    <FiBold />
+                    <FiBold size={13} />
                   </button>
                   <button onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''}>
-                    <FiItalic />
+                    <FiItalic size={13} />
                   </button>
                   <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={editor.isActive('underline') ? 'is-active' : ''}>
                     U
-                  </button>
-                  <button onClick={() => editor.chain().focus().toggleHighlight().run()} className={editor.isActive('highlight') ? 'is-active' : ''}>
-                    <mark>H</mark>
-                  </button>
-                  <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}>
-                    H2
                   </button>
                 </BubbleMenu>
               )}
               <EditorContent editor={editor} />
             </div>
-          </motion.div>
+
+            {/* Footer Word Counter */}
+            <div className="docs-editor-footer-stats">
+              <span>{wordCount} palavras</span>
+              <span>•</span>
+              <span>{charCount} caracteres</span>
+            </div>
+          </div>
         </div>
-      </motion.div>
+      </div>
+
+      {/* AI Prompt Modal */}
+      <Modal
+        open={aiPromptOpen}
+        onClose={() => setAiPromptOpen(false)}
+        title="Gerar com IA"
+        description="Escreva o tema ou comando para a inteligência artificial redigir o documento."
+        icon={<FiZap />}
+        iconColor="var(--accent)"
+        size="md"
+      >
+        <div className="stg-modal-form">
+          <div className="form-group" style={{ gap: '8px' }}>
+            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'none', letterSpacing: 'normal', fontWeight: 500 }}>
+              Instruções para a IA:
+            </label>
+            <textarea
+              placeholder="Ex: Escreva uma pauta de reunião executiva com objetivos, prazos e tarefas..."
+              value={aiPromptText}
+              onChange={e => setAiPromptText(e.target.value)}
+              className="stg-input"
+              rows={4}
+              style={{ resize: 'vertical' }}
+              autoFocus
+            />
+          </div>
+        </div>
+        <div className="stg-modal-footer">
+          <button className="stg-btn stg-btn--ghost" onClick={() => setAiPromptOpen(false)}>Cancelar</button>
+          <button 
+            className="stg-btn stg-btn--primary" 
+            onClick={submitAiPrompt} 
+            disabled={!aiPromptText.trim()}
+          >
+            Gerar Documento
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
+

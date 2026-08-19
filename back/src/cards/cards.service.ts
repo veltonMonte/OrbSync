@@ -3,19 +3,57 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCardDto } from './dto/create-card.dto';
 import { UpdateCardDto } from './dto/update-card.dto';
 import { MoveCardDto } from './dto/move-card.dto';
-import { AutomationEngineService } from '../automations/automations.engine';
+import { WorkspacesService } from '../workspaces/workspaces.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 
 @Injectable()
 export class CardsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly engine: AutomationEngineService,
+    private readonly workspacesService: WorkspacesService,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
-  async create(dto: CreateCardDto) {
+  private async assertColumnAccess(columnId: string, userId: string) {
+    const column = await this.prisma.column.findUnique({
+      where: { id: columnId },
+      include: { board: { include: { project: true } } },
+    });
+    if (!column) {
+      throw new NotFoundException(`Coluna com ID ${columnId} não encontrada`);
+    }
+    if (column.board?.project?.workspaceId) {
+      await this.workspacesService.assertMembership(column.board.project.workspaceId, userId);
+    }
+    return column;
+  }
+
+  private async assertCardAccess(cardId: string, userId?: string) {
+    const card = await this.prisma.card.findUnique({
+      where: { id: cardId },
+      include: {
+        column: { include: { board: { include: { project: true } } } },
+        tags: { include: { tag: true } },
+        assignee: true,
+        creator: true,
+        comments: { include: { author: true }, orderBy: { createdAt: 'asc' } },
+      },
+    });
+    if (!card) {
+      throw new NotFoundException(`Card com ID ${cardId} não encontrado`);
+    }
+    if (userId && card.column?.board?.project?.workspaceId) {
+      await this.workspacesService.assertMembership(card.column.board.project.workspaceId, userId);
+    }
+    return card;
+  }
+
+  async create(dto: CreateCardDto, userId: string) {
+    await this.assertColumnAccess(dto.columnId, userId);
+
     const { tagIds, ...data } = dto;
 
-    return this.prisma.card.create({
+    const card = await this.prisma.card.create({
       data: {
         ...data,
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
@@ -29,9 +67,13 @@ export class CardsService {
         creator: true,
       },
     });
+
+    return card;
   }
 
-  async findAllByColumn(columnId: string) {
+  async findAllByColumn(columnId: string, userId: string) {
+    await this.assertColumnAccess(columnId, userId);
+
     return this.prisma.card.findMany({
       where: { columnId },
       orderBy: { position: 'asc' },
@@ -42,27 +84,14 @@ export class CardsService {
     });
   }
 
-  async findOne(id: string) {
-    const card = await this.prisma.card.findUnique({
-      where: { id },
-      include: {
-        tags: { include: { tag: true } },
-        assignee: true,
-        creator: true,
-        comments: { include: { author: true }, orderBy: { createdAt: 'asc' } },
-      },
-    });
-    if (!card) {
-      throw new NotFoundException(`Card com ID ${id} não encontrado`);
-    }
-    return card;
+  async findOne(id: string, userId?: string) {
+    return this.assertCardAccess(id, userId);
   }
 
-  async update(id: string, dto: UpdateCardDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateCardDto, userId: string) {
+    await this.assertCardAccess(id, userId);
     const { tagIds, ...data } = dto;
 
-    // If tagIds provided, replace all tags
     if (tagIds) {
       await this.prisma.cardTag.deleteMany({ where: { cardId: id } });
       if (tagIds.length > 0) {
@@ -85,15 +114,17 @@ export class CardsService {
     });
   }
 
-  async move(id: string, dto: MoveCardDto) {
-    const card = await this.findOne(id);
+  async move(id: string, dto: MoveCardDto, userId: string) {
+    const card = await this.assertCardAccess(id, userId);
+    await this.assertColumnAccess(dto.targetColumnId, userId);
     const oldColumnId = card.columnId;
+    const finalPosition = dto.position ?? dto.newPosition ?? 0;
     
     const updated = await this.prisma.card.update({
       where: { id },
       data: {
         columnId: dto.targetColumnId,
-        position: dto.position,
+        position: finalPosition,
       },
       include: {
         tags: { include: { tag: true } },
@@ -102,22 +133,25 @@ export class CardsService {
     });
 
     if (oldColumnId !== dto.targetColumnId) {
-      // Find workspaceId
       const column = await this.prisma.column.findUnique({ 
         where: { id: dto.targetColumnId },
         include: { board: { include: { project: true } } }
       });
-      if (column?.board?.project?.workspaceId) {
-        // Run engine in background (don't await so we don't block the request)
-        this.engine.handleCardMoved(id, column.board.project.workspaceId, dto.targetColumnId).catch(console.error);
-      }
+
+      // Notificar a equipe via WhatsApp sobre a movimentação da tarefa
+      this.whatsappService.queueOrSendTeamNotification({
+        userId,
+        title: '📋 Movimentação no Kanban',
+        message: `A tarefa "${card.title}" foi movida para a coluna "${column?.name || 'Nova Coluna'}".`,
+        category: 'KANBAN',
+      }).catch(console.error);
     }
 
     return updated;
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, userId: string) {
+    await this.assertCardAccess(id, userId);
     await this.prisma.card.delete({ where: { id } });
   }
 }

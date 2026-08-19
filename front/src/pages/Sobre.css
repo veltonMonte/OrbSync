@@ -1,0 +1,484 @@
+/* ════════════════════════════════════════════════
+   SOBRE — Features / About Section
+   ════════════════════════════════════════════════ */
+
+.sobre-page {
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ─── Header ─── */
+.sobre-header {
+  margin-bottom: 4rem;
+  position: relative;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sobre-header::after {
+  content: '';
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(
+    circle,
+    rgba(226, 163, 54, 0.08) 0%,
+    transparent 65%
+  );
+  pointer-events: none;
+}
+
+.sobre-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(226, 163, 54, 0.1);
+  padding: 0.4rem 1rem;
+  border-radius: 100px;
+  border: 1px solid rgba(226, 163, 54, 0.2);
+}
+
+.sobre-heading {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.sobre-heading em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.sobre-subtitle {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  margin-top: 1.25rem;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+/* ─── Feature grid (BENTO STYLE) ─── */
+.sobre-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  background: transparent;
+}
+
+/* ─── Feature card ─── */
+.sobre-card {
+  position: relative;
+  background: rgba(15, 15, 15, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px -12px rgba(0,0,0,0.5);
+  transition: border-color var(--duration-normal) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out);
+}
+
+.sobre-card:hover {
+  border-color: rgba(226, 163, 54, 0.3);
+  box-shadow: 0 12px 48px -12px rgba(226, 163, 54, 0.15);
+}
+
+/* Card Sizes */
+.sobre-card.span-2 {
+  grid-column: span 2;
+  flex-direction: row;
+  align-items: center;
+  gap: 3rem;
+}
+.sobre-card.span-2 .sobre-card-body {
+  flex: 1;
+}
+.sobre-card.span-2 .sobre-card-icon-wrapper {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+/* Cursor-following glow overlay */
+.sobre-card-glow {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(226, 163, 54, 0.08) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+}
+
+.sobre-card:hover .sobre-card-glow {
+  opacity: 1;
+}
+
+/* Icon circle */
+.sobre-card-icon-wrapper {
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.sobre-card-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
+  background: var(--accent-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  transition: background var(--duration-fast) var(--ease-in-out),
+              transform var(--duration-normal) var(--ease-out);
+  border: 1px solid rgba(226, 163, 54, 0.1);
+}
+
+.sobre-card:hover .sobre-card-icon {
+  background: rgba(226, 163, 54, 0.18);
+  transform: scale(1.1) rotate(-5deg);
+}
+
+/* Title + text */
+.sobre-card-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sobre-card-body h2 {
+  font-size: 1.25rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sobre-card-body p {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.sobre-card-body p + p {
+  margin-top: 0.75rem;
+}
+
+/* Card Header Row & Badge */
+.sobre-card-header-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.sobre-card-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-muted);
+  border: 1px solid rgba(226, 163, 54, 0.2);
+  padding: 0.25rem 0.65rem;
+  border-radius: 100px;
+}
+
+/* ─── Diff Banner (vs n8n) ─── */
+.sobre-diff-banner {
+  background: rgba(18, 18, 20, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 2.5rem;
+  margin-bottom: 4rem;
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+}
+
+.sobre-diff-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 1.5rem;
+}
+
+.sobre-diff-grid {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 2rem;
+  align-items: stretch;
+}
+
+.sobre-diff-divider {
+  background: var(--border-subtle);
+}
+
+.sobre-diff-col h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.sobre-diff-col.highlight h3 {
+  color: var(--accent);
+}
+
+.sobre-diff-col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.sobre-diff-col li {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.sobre-diff-col li strong {
+  color: var(--text-primary);
+}
+
+/* ─── Section Title ─── */
+.sobre-section-title {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.sobre-section-title h2 {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.sobre-section-title p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+/* ─── API Section ─── */
+.sobre-api-section {
+  margin-top: 5rem;
+  background: rgba(15, 15, 17, 0.8);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 3rem;
+  backdrop-filter: blur(12px);
+}
+
+.sobre-api-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sobre-api-header h2 {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  color: var(--text-primary);
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.sobre-api-header p {
+  color: var(--text-secondary);
+  max-width: 680px;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.sobre-api-box {
+  background: #09090b;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 3rem;
+}
+
+.sobre-api-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #111115;
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+}
+
+.sobre-api-nav button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.sobre-api-nav button:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.05);
+}
+
+.sobre-api-nav button.active {
+  background: var(--accent-muted);
+  color: var(--accent);
+  border: 1px solid rgba(226, 163, 54, 0.2);
+}
+
+.sobre-api-copy {
+  margin-left: auto;
+  background: rgba(255,255,255,0.08) !important;
+  color: var(--text-primary) !important;
+}
+
+.sobre-api-code {
+  padding: 1.5rem;
+  margin: 0;
+  font-family: 'Fira Code', monospace, Consolas;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: #e2e8f0;
+  overflow-x: auto;
+}
+
+/* Use Cases */
+.sobre-usecases-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.sobre-usecase-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.sobre-usecase-num {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--accent);
+  opacity: 0.6;
+  margin-bottom: 0.5rem;
+}
+
+.sobre-usecase-card h3 {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+
+.sobre-usecase-card p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Footer CTA */
+.sobre-footer-cta {
+  margin-top: 5rem;
+  text-align: center;
+  padding: 3.5rem 2rem;
+  background: radial-gradient(circle, rgba(226, 163, 54, 0.06) 0%, transparent 70%);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+}
+
+.sobre-footer-cta h2 {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+
+.sobre-footer-cta p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  max-width: 550px;
+  margin: 0 auto;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 900px) {
+  .sobre-grid, .sobre-usecases-grid {
+    grid-template-columns: 1fr;
+  }
+  .sobre-diff-grid {
+    grid-template-columns: 1fr;
+  }
+  .sobre-diff-divider {
+    display: none;
+  }
+  .sobre-card.span-2 {
+    grid-column: span 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+  .sobre-api-section {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .sobre-heading {
+    font-size: 2.5rem;
+  }
+  .sobre-header {
+    margin-bottom: 2.5rem;
+  }
+  .sobre-card {
+    padding: 1.5rem;
+  }
+}

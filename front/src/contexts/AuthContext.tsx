@@ -7,7 +7,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  loginWithTokens: (userData: AuthUser, tokens: { accessToken: string; refreshToken: string }) => void;
+  register: (name: string, email: string, password: string, acceptedTerms?: boolean) => Promise<void>;
+  acceptTerms: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -20,17 +22,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check for stored auth data on mount
-    const storedUser = localStorage.getItem('orbsync_user');
-    const storedToken = localStorage.getItem('orbsync_access_token');
+    const storedUser = localStorage.getItem('fluxionai_user');
+    const storedToken = localStorage.getItem('fluxionai_access_token');
 
     if (storedUser && storedToken) {
       try {
         setUser(JSON.parse(storedUser));
         setAccessToken(storedToken);
       } catch {
-        localStorage.removeItem('orbsync_user');
-        localStorage.removeItem('orbsync_access_token');
-        localStorage.removeItem('orbsync_refresh_token');
+        localStorage.removeItem('fluxionai_user');
+        localStorage.removeItem('fluxionai_access_token');
+        localStorage.removeItem('fluxionai_refresh_token');
       }
     }
 
@@ -40,9 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const saveAuth = (userData: AuthUser, tokens: { accessToken: string; refreshToken: string }) => {
     setUser(userData);
     setAccessToken(tokens.accessToken);
-    localStorage.setItem('orbsync_user', JSON.stringify(userData));
-    localStorage.setItem('orbsync_access_token', tokens.accessToken);
-    localStorage.setItem('orbsync_refresh_token', tokens.refreshToken);
+    localStorage.setItem('fluxionai_user', JSON.stringify(userData));
+    localStorage.setItem('fluxionai_access_token', tokens.accessToken);
+    localStorage.setItem('fluxionai_refresh_token', tokens.refreshToken);
   };
 
   const login = async (email: string, password: string) => {
@@ -50,13 +52,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveAuth(response.user, { accessToken: response.accessToken, refreshToken: response.refreshToken });
   };
 
-  const register = async (name: string, email: string, password: string) => {
-    const response = await authApi.register({ name, email, password });
+  const loginWithTokens = (userData: AuthUser, tokens: { accessToken: string; refreshToken: string }) => {
+    saveAuth(userData, tokens);
+  };
+
+  const register = async (name: string, email: string, password: string, acceptedTerms = true) => {
+    const response = await authApi.register({ name, email, password, acceptedTerms });
     saveAuth(response.user, { accessToken: response.accessToken, refreshToken: response.refreshToken });
   };
 
+  const acceptTerms = async () => {
+    const res = await authApi.acceptTerms();
+    if (user) {
+      const updatedUser = { ...user, termsAcceptedAt: res.termsAcceptedAt || new Date().toISOString() };
+      setUser(updatedUser);
+      localStorage.setItem('fluxionai_user', JSON.stringify(updatedUser));
+    }
+  };
+
   const logout = async () => {
-    const refreshToken = localStorage.getItem('orbsync_refresh_token');
+    const refreshToken = localStorage.getItem('fluxionai_refresh_token');
     if (refreshToken) {
       try {
         await authApi.logout(refreshToken);
@@ -65,13 +80,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    const currentUserId = user?.id;
     setUser(null);
     setAccessToken(null);
-    localStorage.removeItem('orbsync_user');
-    localStorage.removeItem('orbsync_access_token');
-    localStorage.removeItem('orbsync_refresh_token');
-    localStorage.removeItem('orbsync_term_history');
-    localStorage.removeItem('orbsync_term_cmd_history');
+    localStorage.removeItem('fluxionai_user');
+    localStorage.removeItem('fluxionai_access_token');
+    localStorage.removeItem('fluxionai_refresh_token');
+    localStorage.removeItem('fluxionai_term_history');
+    localStorage.removeItem('fluxionai_term_cmd_history');
+    localStorage.removeItem('fluxionai_gh_token');
+    if (currentUserId) {
+      localStorage.removeItem(`fluxionai_gh_token_${currentUserId}`);
+    }
     sessionStorage.removeItem('splashShown');
   };
 
@@ -83,7 +103,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user && !!accessToken,
         isLoading,
         login,
+        loginWithTokens,
         register,
+        acceptTerms,
         logout,
       }}
     >

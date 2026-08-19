@@ -1,12 +1,13 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TerminalController } from './terminal.controller';
 import { TerminalService } from './terminal.service';
-import { AutomationsModule } from '../automations/automations.module';
+import { WhatsappModule } from '../whatsapp/whatsapp.module';
 
 @Module({
-  imports: [forwardRef(() => AutomationsModule)],
+  imports: [WhatsappModule],
   controllers: [TerminalController],
   providers: [TerminalService],
   exports: [TerminalService]
 })
 export class TerminalModule {}
+

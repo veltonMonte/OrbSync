@@ -9,8 +9,9 @@ export class TerminalController {
   constructor(private readonly terminalService: TerminalService) {}
 
   @Get('info')
-  getInfo() {
-    return this.terminalService.getInfo();
+  getInfo(@Req() req: Request) {
+    const userId = (req as any).user?.userId;
+    return this.terminalService.getInfo(userId);
   }
 
   @Post('execute')

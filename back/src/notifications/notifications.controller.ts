@@ -36,8 +36,24 @@ export class NotificationsController {
     return this.notificationsService.markAsRead(userId, dto);
   }
 
+  @Delete('all')
+  removeAll(@Req() req: Request) {
+    const userId = (req as any).user.userId;
+    return this.notificationsService.removeAllByUser(userId);
+  }
+
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id') id: string, @Req() req: Request) {
+    const userId = (req as any).user.userId;
     return this.notificationsService.remove(id);
+  }
+
+
+
+
+  @Post(':id/execute')
+  async executeTask(@Param('id') id: string, @Req() req: Request, @Body() body: any) {
+    const userId = (req as any).user?.userId;
+    return this.notificationsService.executeTask(id, userId, body);
   }
 }

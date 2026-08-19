@@ -3,7 +3,6 @@ import { Float, useTexture } from '@react-three/drei';
 import { useRef, useEffect, useState, Suspense } from 'react';
 import * as THREE from 'three';
 import { useAuth } from '../contexts/AuthContext';
-import { useLocation } from 'react-router-dom';
 
 type ShapeType = 'planet' | 'diamond' | 'gem';
 
@@ -121,7 +120,6 @@ function Shape({ type, targetPosition, targetScale = 1, scale = 1, speed = 2, fl
 
 export function Floating3DBackground() {
   const { isAuthenticated } = useAuth();
-  const location = useLocation();
   const [animState, setAnimState] = useState<'login' | 'transition' | 'dashboard'>('login');
 
   useEffect(() => {
@@ -176,7 +174,7 @@ export function Floating3DBackground() {
   }
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 20, overflow: 'hidden' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1, overflow: 'hidden' }}>
       <Canvas camera={{ position: [0, 0, 8], fov: 45 }} dpr={[1, 1.5]}>
         {/* Moderate lighting for balanced shadows and colors */}
         <ambientLight intensity={2} color="#ffffff" />

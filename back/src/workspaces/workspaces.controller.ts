@@ -34,32 +34,38 @@ export class WorkspacesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.workspacesService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: Request) {
+    const userId = (req as any).user.userId;
+    return this.workspacesService.findOne(id, userId);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateWorkspaceDto) {
-    return this.workspacesService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateWorkspaceDto, @Req() req: Request) {
+    const userId = (req as any).user.userId;
+    return this.workspacesService.update(id, dto, userId);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.workspacesService.remove(id);
+  remove(@Param('id') id: string, @Req() req: Request) {
+    const userId = (req as any).user.userId;
+    return this.workspacesService.remove(id, userId);
   }
 
   @Post(':id/members')
-  addMember(@Param('id') id: string, @Body() dto: AddMemberDto) {
-    return this.workspacesService.addMember(id, dto);
+  addMember(@Param('id') id: string, @Body() dto: AddMemberDto, @Req() req: Request) {
+    const userId = (req as any).user.userId;
+    return this.workspacesService.addMember(id, dto, userId);
   }
 
   @Delete(':id/members/:userId')
-  removeMember(@Param('id') id: string, @Param('userId') userId: string) {
-    return this.workspacesService.removeMember(id, userId);
+  removeMember(@Param('id') id: string, @Param('userId') targetUserId: string, @Req() req: Request) {
+    const userId = (req as any).user.userId;
+    return this.workspacesService.removeMember(id, targetUserId, userId);
   }
 
   @Get(':id/stats')
-  getStats(@Param('id') id: string) {
-    return this.workspacesService.getStats(id);
+  getStats(@Param('id') id: string, @Req() req: Request) {
+    const userId = (req as any).user.userId;
+    return this.workspacesService.getStats(id, userId);
   }
 }

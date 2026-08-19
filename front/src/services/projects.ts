@@ -1,8 +1,13 @@
 import { authFetch } from './api';
+import type { Card } from './cards';
 
 export interface Project {
   id: string;
   name: string;
+  color?: string;
+  isArchived: boolean;
+  localPath?: string;
+  githubRepo?: string;
   workspaceId: string;
   boards?: Board[];
   createdAt?: string | Date;
@@ -21,6 +26,7 @@ export interface Column {
   position: number;
   boardId: string;
   color?: string;
+  cards?: Card[];
 }
 
 export const projectsApi = {
@@ -28,12 +34,21 @@ export const projectsApi = {
     const res = await authFetch(`/projects?workspaceId=${workspaceId}`);
     return res.json();
   },
-  create: async (workspaceId: string, name: string): Promise<Project> => {
+  getById: async (id: string): Promise<Project> => {
+    const res = await authFetch(`/projects/${id}`);
+    return res.json();
+  },
+  create: async (workspaceId: string, name: string, localPath?: string, githubRepo?: string): Promise<Project> => {
     const res = await authFetch('/projects', {
       method: 'POST',
-      body: JSON.stringify({ workspaceId, name }),
+      body: JSON.stringify({ workspaceId, name, localPath, githubRepo }),
     });
     return res.json();
+  },
+  delete: async (id: string): Promise<void> => {
+    await authFetch(`/projects/${id}`, {
+      method: 'DELETE',
+    });
   }
 };
 

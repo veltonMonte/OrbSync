@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -13,20 +15,26 @@ import { ColumnsModule } from './columns/columns.module';
 import { CardsModule } from './cards/cards.module';
 import { TagsModule } from './tags/tags.module';
 import { CommentsModule } from './comments/comments.module';
-import { AutomationsModule } from './automations/automations.module';
 import { DocumentsModule } from './documents/documents.module';
 import { AiModule } from './ai/ai.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MetricsModule } from './metrics/metrics.module';
-import { TerminalModule } from './terminal/terminal.module';
 import { GmailModule } from './gmail/gmail.module';
+import { EmailModule } from './email/email.module';
+import { LogsModule } from './logs/logs.module';
+import { ApiV1Module } from './api-v1/api-v1.module';
+import { WhatsappModule } from './whatsapp/whatsapp.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 60,
+    }]),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -37,17 +45,25 @@ import { GmailModule } from './gmail/gmail.module';
     CardsModule,
     TagsModule,
     CommentsModule,
-    AutomationsModule,
     DocumentsModule,
     AiModule,
     IntegrationsModule,
     NotificationsModule,
     MetricsModule,
-    TerminalModule,
     ScheduleModule.forRoot(),
     GmailModule,
+    EmailModule,
+    LogsModule,
+    ApiV1Module,
+    WhatsappModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    }
+  ],
 })
 export class AppModule {}

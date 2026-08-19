@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 export class MoveCardDto {
   @IsString()
@@ -7,5 +7,11 @@ export class MoveCardDto {
 
   @IsInt()
   @Min(0)
-  position: number;
+  @IsOptional()
+  position?: number;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  newPosition?: number;
 }

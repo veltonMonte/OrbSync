@@ -1,4 +1,4 @@
-// OrbSync — Prisma Schema
+// FluxionAI — Prisma Schema
 // Plataforma inteligente de produtividade
 
 generator client {
@@ -33,14 +33,6 @@ enum CardStatus {
   ARCHIVED
 }
 
-enum AutomationTrigger {
-  CARD_MOVED
-  CARD_CREATED
-  DUE_DATE_REACHED
-  STATUS_CHANGED
-  TERMINAL_COMMAND
-}
-
 enum DocumentType {
   RESUME
   REPORT
@@ -68,15 +60,27 @@ enum NotificationType {
   SYSTEM
 }
 
+enum LogLevel {
+  INFO
+  WARNING
+  ERROR
+  USAGE
+}
+
 // ─── USER & AUTH ────────────────────────────────────────
 
 model User {
   id           String   @id @default(uuid())
   name         String   @db.VarChar(100)
   email        String   @unique
-  passwordHash String
+  passwordHash String?
   avatarUrl    String?
   isActive     Boolean  @default(true)
+  isVerified   Boolean  @default(false)
+  emailRequestsCount Int @default(0)
+  lastEmailRequestAt DateTime?
+  termsAcceptedAt    DateTime?
+  termsVersion       String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -87,11 +91,16 @@ model User {
   comments             Comment[]
   documents            Document[]
   aiChats              AIChat[]
+  aiConfig             UserAiConfig?
   integrations         Integration[]
   activityLogs         ActivityLog[]
   notifications        Notification[]
   productivityMetrics  ProductivityMetric[]
   refreshTokens        RefreshToken[]
+  verificationToken    VerificationToken?
+  passwordResetToken   PasswordResetToken?
+  savedLeads           SavedLead[]
+  systemLogs           SystemLog[]
 
   @@map("users")
 }
@@ -108,6 +117,32 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+model VerificationToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+
+
 // ─── WORKSPACE ──────────────────────────────────────────
 
 model Workspace {
@@ -123,8 +158,8 @@ model Workspace {
   members      WorkspaceMember[]
   projects     Project[]
   tags         Tag[]
-  automations  Automation[]
   activityLogs ActivityLog[]
+  agents       Agent[]
 
   @@map("workspaces")
 }
@@ -151,6 +186,8 @@ model Project {
   description String?
   color       String?  @db.VarChar(7) // hex color
   isArchived  Boolean  @default(false)
+  localPath   String?  @db.VarChar(255) // local path to repo
+  githubRepo  String?  @db.VarChar(200) // format: owner/repo
   workspaceId String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -197,10 +234,12 @@ model Card {
   title       String       @db.VarChar(200)
   description String?
   position    Int          @default(0)
-  priority    CardPriority @default(NONE)
-  status      CardStatus   @default(TODO)
-  dueDate     DateTime?
-  columnId    String
+  priority          CardPriority @default(NONE)
+  status            CardStatus   @default(TODO)
+  dueDate           DateTime?
+  branchName        String?      @db.VarChar(100) // e.g. feature/add-login
+  githubIssueNumber Int?
+  columnId          String
   assigneeId  String?
   creatorId   String
   createdAt   DateTime     @default(now())
@@ -255,23 +294,6 @@ model Comment {
   @@map("comments")
 }
 
-// ─── AUTOMATIONS ────────────────────────────────────────
-
-model Automation {
-  id          String             @id @default(uuid())
-  name        String             @db.VarChar(100)
-  description String?
-  trigger     AutomationTrigger
-  actionRules Json // { action: "move_card", targetColumnId: "..." }
-  isActive    Boolean            @default(true)
-  workspaceId String
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@map("automations")
-}
 
 // ─── DOCUMENTS ──────────────────────────────────────────
 
@@ -316,6 +338,22 @@ model AIMessage {
   @@map("ai_messages")
 }
 
+// ─── USER AI CONFIG ─────────────────────────────────────
+
+model UserAiConfig {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  provider  String   @db.VarChar(30)  // "gemini" | "openai" | "anthropic"
+  model     String   @db.VarChar(100) // e.g. "gpt-4o", "claude-3-5-sonnet-20241022"
+  apiKey    String   // stored as-is (Supabase encrypts at rest)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_ai_configs")
+}
+
 // ─── INTEGRATIONS ───────────────────────────────────────
 
 model Integration {
@@ -355,6 +393,21 @@ model ActivityLog {
   @@map("activity_logs")
 }
 
+model SystemLog {
+  id        String   @id @default(uuid())
+  level     LogLevel
+  module    String   @db.VarChar(50) // "AI", "GMAIL", "AUTOMATION", etc.
+  message   String
+  metadata  Json?
+  userId    String?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@map("system_logs")
+}
+
 // ─── NOTIFICATIONS ──────────────────────────────────────
 
 model Notification {
@@ -389,4 +442,160 @@ model ProductivityMetric {
 
   @@unique([userId, date])
   @@map("productivity_metrics")
+}
+
+// ─── SAVED LEADS ────────────────────────────────────────
+
+model SavedLead {
+  id              String   @id @default(uuid())
+  name            String   @db.VarChar(200)
+  location        String?
+  niche           String?
+  probability     Int?
+  suggestedBudget String?
+  whatsappPrompt  String?  @db.Text
+  userId          String
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("saved_leads")
+}
+
+// ─── GATEWAY API (AGENTS & ACTIONS) ─────────────────────
+
+enum AgentPlan {
+  BASIC
+  PRO
+}
+
+enum AgentEnvironment {
+  DEVELOPMENT
+  PRODUCTION
+}
+
+enum AgentStatus {
+  ACTIVE
+  REVOKED
+}
+
+model Agent {
+  id           String    @id @default(uuid())
+  name         String    @db.VarChar(100)
+  description  String?   @db.Text
+  systemPrompt String?   @db.Text
+  planType     AgentPlan @default(BASIC)
+  environment  AgentEnvironment @default(DEVELOPMENT)
+  status       AgentStatus @default(ACTIVE)
+  apiKeyHash   String    @unique @default("") @db.VarChar(255)
+  apiKeyPrefix String?   @db.VarChar(20)
+  workspaceId  String
+  permissions  Json?     @db.JsonB
+  expiresAt    DateTime?
+  lastUsedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actions      Action[]
+  customers    Customer[]
+  conversations Conversation[]
+  apiKeyLogs   ApiKeyLog[]
+
+  @@map("agents")
+}
+
+model ApiKeyLog {
+  id               String   @id @default(uuid())
+  agentId          String
+  workspaceId      String
+  permission       String?  @db.VarChar(100)
+  endpoint         String   @db.VarChar(255)
+  method           String   @db.VarChar(10)
+  result           String   @db.VarChar(20) // ALLOWED, DENIED
+  ip               String?  @db.VarChar(50)
+  userAgent        String?  @db.Text
+  createdAt        DateTime @default(now())
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@map("api_key_logs")
+}
+
+model Action {
+  id             String   @id @default(uuid())
+  name           String   @db.VarChar(100)
+  description    String   @db.Text
+  method         String   @db.VarChar(10)
+  endpointUrl    String   @db.VarChar(255)
+  headers        Json?
+  schemaJson     Json?
+  requiresApproval Boolean @default(false)
+  agentId        String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  logs  ActionLog[]
+
+  @@map("actions")
+}
+
+model Customer {
+  id         String   @id @default(uuid())
+  name       String   @db.VarChar(150)
+  phone      String?  @db.VarChar(30)
+  email      String?  @db.VarChar(100)
+  externalId String?  @db.VarChar(100)
+  agentId    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+
+  @@unique([agentId, externalId])
+  @@map("customers")
+}
+
+model Conversation {
+  id         String   @id @default(uuid())
+  channel    String   @db.VarChar(30)
+  agentId    String
+  customerId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  agent    Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  role           AIMessageRole
+  content        String   @db.Text
+  conversationId String
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+model ActionLog {
+  id          String   @id @default(uuid())
+  actionName  String   @db.VarChar(100)
+  status      Int
+  payload     Json?
+  response    Json?
+  tokensUsed  Int      @default(0)
+  actionId    String
+  createdAt   DateTime @default(now())
+
+  action Action @relation(fields: [actionId], references: [id], onDelete: Cascade)
+
+  @@map("action_logs")
 }

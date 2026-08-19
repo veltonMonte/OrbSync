@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiPlus, FiMoreHorizontal, FiCalendar, FiArrowLeft, FiLoader, FiFolder } from 'react-icons/fi';
+import { FiPlus, FiMoreHorizontal, FiCalendar, FiArrowLeft, FiLoader, FiFolder, FiTrash2 } from 'react-icons/fi';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import './Projects.css';
 import { useAuth } from '../contexts/AuthContext';
 import { workspacesApi, type Workspace } from '../services/workspaces';
-import { projectsApi, boardsApi, columnsApi, type Project, type Board, type Column } from '../services/projects';
+import { projectsApi, boardsApi, columnsApi, type Project, type Column } from '../services/projects';
 import { cardsApi, type Card } from '../services/cards';
+import { useToast } from '../contexts/ToastContext';
 
 interface ColumnWithCards extends Column {
   cards: Card[];
@@ -15,12 +16,17 @@ interface ColumnWithCards extends Column {
 
 export default function ProjectsPage() {
   const { user } = useAuth();
+  const toast = useToast();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   
   // Master View State
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [isSubmittingProject, setIsSubmittingProject] = useState(false);
+  const [isSubmittingCard, setIsSubmittingCard] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectLocalPath, setNewProjectLocalPath] = useState('');
+  const [newProjectGithubRepo, setNewProjectGithubRepo] = useState('');
   
   // Detail View State (Kanban)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -56,31 +62,36 @@ export default function ProjectsPage() {
     initWorkspace();
   }, []);
 
-  // 2. Carrega o Kanban quando um projeto é selecionado
+  // 2. Carrega o Kanban quando um projeto é selecionado (Requisição Única sem N+1)
   const handleOpenProject = async (proj: Project) => {
     setSelectedProject(proj);
     setIsLoading(true);
     try {
-      let activeBoard = proj.boards && proj.boards.length > 0 ? proj.boards[0] : null;
+      const fullProj = await projectsApi.getById(proj.id);
+      let activeBoard = fullProj.boards && fullProj.boards.length > 0 ? fullProj.boards[0] : null;
+      
       if (!activeBoard) {
         activeBoard = await boardsApi.create(proj.id, 'Quadro Principal');
       }
 
-
-      let cols = await columnsApi.getByBoard(activeBoard.id);
+      let cols = activeBoard.columns || [];
       if (cols.length === 0) {
         const col1 = await columnsApi.create(activeBoard.id, 'A Fazer', 0, '#c084fc');
         const col2 = await columnsApi.create(activeBoard.id, 'Em Progresso', 1, '#3b82f6');
         const col3 = await columnsApi.create(activeBoard.id, 'Concluído', 2, '#10b981');
-        cols = [col1, col2, col3];
+        cols = [
+          { ...col1, cards: [] },
+          { ...col2, cards: [] },
+          { ...col3, cards: [] }
+        ];
       }
 
-      const colsWithCards: ColumnWithCards[] = await Promise.all(
-        cols.sort((a, b) => a.position - b.position).map(async (col) => {
-          const cards = await cardsApi.getByColumn(col.id);
-          return { ...col, cards: cards.sort((a, b) => a.position - b.position) };
-        })
-      );
+      const colsWithCards: ColumnWithCards[] = cols
+        .sort((a, b) => a.position - b.position)
+        .map(col => ({
+          ...col,
+          cards: (col.cards || []).sort((a, b) => a.position - b.position)
+        }));
 
       setColumns(colsWithCards);
     } catch (error: any) {
@@ -98,20 +109,37 @@ export default function ProjectsPage() {
   };
 
   const handleCreateProject = async () => {
-    if (!newProjectName.trim() || !workspace) return;
+    if (!newProjectName.trim() || !workspace || isSubmittingProject) return;
 
     try {
-      setIsLoading(true);
-      const newProj = await projectsApi.create(workspace.id, newProjectName.trim());
+      setIsSubmittingProject(true);
+      const newProj = await projectsApi.create(workspace.id, newProjectName.trim(), newProjectLocalPath.trim(), newProjectGithubRepo.trim());
       setAllProjects(prev => [newProj, ...prev]);
       
       setNewProjectName('');
+      setNewProjectLocalPath('');
+      setNewProjectGithubRepo('');
       setIsCreatingProject(false);
-      
-      // Abre automaticamente o novo projeto?
-      // handleOpenProject(newProj); 
+      toast.success('Projeto criado com sucesso!');
     } catch (error: any) {
       console.error('Erro ao criar projeto:', error);
+      setErrorMsg(error.message || String(error));
+      toast.error(error.message || 'Erro ao criar projeto');
+    } finally {
+      setIsSubmittingProject(false);
+    }
+  };
+
+  const handleDeleteProject = async (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation();
+    if (!window.confirm('Tem certeza que deseja excluir este projeto permanentemente? Toda a automação e cards associados serão perdidos.')) return;
+    
+    try {
+      setIsLoading(true);
+      await projectsApi.delete(projectId);
+      setAllProjects(prev => prev.filter(p => p.id !== projectId));
+    } catch (error: any) {
+      console.error('Erro ao excluir projeto:', error);
       setErrorMsg(error.message || String(error));
     } finally {
       setIsLoading(false);
@@ -119,12 +147,13 @@ export default function ProjectsPage() {
   };
 
   const handleAddCard = async (columnId: string) => {
-    if (!newTaskTitle.trim() || !user?.id) {
+    if (!newTaskTitle.trim() || !user?.id || isSubmittingCard) {
       setAddingToColumn(null);
       return;
     }
 
     try {
+      setIsSubmittingCard(true);
       const newCard = await cardsApi.create(columnId, newTaskTitle.trim(), user.id);
       
       setColumns(prev => prev.map(col => {
@@ -133,12 +162,26 @@ export default function ProjectsPage() {
         }
         return col;
       }));
-      
-    } catch (error) {
+      toast.success('Tarefa adicionada!');
+    } catch (error: any) {
       console.error('Erro ao criar tarefa:', error);
+      toast.error(error.message || 'Erro ao criar tarefa');
     } finally {
       setNewTaskTitle('');
       setAddingToColumn(null);
+      setIsSubmittingCard(false);
+    }
+  };
+
+  const handleUpdateCard = async (cardId: string, updates: Partial<Card>) => {
+    try {
+      const updated = await cardsApi.update(cardId, updates);
+      setColumns(prev => prev.map(col => ({
+        ...col,
+        cards: col.cards.map(c => c.id === cardId ? updated : c)
+      })));
+    } catch (error) {
+      console.error('Erro ao atualizar tarefa:', error);
     }
   };
 
@@ -171,8 +214,9 @@ export default function ProjectsPage() {
 
     try {
       await cardsApi.move(draggableId, destination.droppableId, destination.index);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao mover tarefa:', error);
+      toast.error(error.message || 'Erro ao mover tarefa no servidor');
       if (selectedProject) handleOpenProject(selectedProject);
     }
   };
@@ -205,22 +249,36 @@ export default function ProjectsPage() {
           </div>
           
           {isCreatingProject ? (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className="projects-create-form">
               <input 
                 type="text" 
                 className="projects-new-input"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(139, 92, 246, 0.5)',
-                  color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', outline: 'none'
-                }}
-                placeholder="Nome do projeto..."
+                placeholder="Nome do projeto... *"
                 value={newProjectName}
                 onChange={e => setNewProjectName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleCreateProject()}
                 autoFocus
               />
-              <button className="projects-new-btn" onClick={handleCreateProject}>Salvar</button>
-              <button className="projects-new-btn" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)' }} onClick={() => setIsCreatingProject(false)}>Cancelar</button>
+              <input 
+                type="text" 
+                className="projects-new-input"
+                placeholder="Caminho Local (Ex: C:\Projetos\MeuApp)"
+                value={newProjectLocalPath}
+                onChange={e => setNewProjectLocalPath(e.target.value)}
+              />
+              <input 
+                type="text" 
+                className="projects-new-input"
+                placeholder="Repositório GitHub (Ex: owner/repo)"
+                value={newProjectGithubRepo}
+                onChange={e => setNewProjectGithubRepo(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleCreateProject()}
+              />
+              <div className="projects-create-actions">
+                <button className="projects-new-btn" onClick={handleCreateProject} disabled={isSubmittingProject}>
+                  {isSubmittingProject ? 'Salvando...' : 'Salvar'}
+                </button>
+                <button className="projects-btn-secondary" onClick={() => setIsCreatingProject(false)} disabled={isSubmittingProject}>Cancelar</button>
+              </div>
             </div>
           ) : (
             <button className="projects-new-btn" onClick={() => setIsCreatingProject(true)}>
@@ -231,7 +289,7 @@ export default function ProjectsPage() {
 
         {isLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4rem' }}>
-            <FiLoader className="spin" size={32} color="#c084fc" />
+            <FiLoader className="spin" size={32} color="var(--accent)" />
           </div>
         ) : (
           <motion.div 
@@ -245,16 +303,31 @@ export default function ProjectsPage() {
                 key={proj.id} 
                 className="project-grid-card"
                 onClick={() => handleOpenProject(proj)}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.1 + (index * 0.05) }}
-                whileHover={{ y: -5, boxShadow: '0 10px 25px rgba(139, 92, 246, 0.15)' }}
+                whileHover={{ y: -4 }}
               >
-                <div className="project-grid-icon">
-                  <FiFolder size={24} color="#c084fc" />
+                <div className="project-card-header">
+                  <div className="project-card-icon-wrapper">
+                    <FiFolder className="project-card-icon" />
+                  </div>
+                  <button 
+                    className="project-card-delete-btn"
+                    onClick={(e) => handleDeleteProject(e, proj.id)}
+                    title="Excluir projeto"
+                    aria-label={`Excluir projeto ${proj.name}`}
+                  >
+                    <FiTrash2 size={14} />
+                  </button>
                 </div>
-                <h3>{proj.name}</h3>
-                <p>Criado em {new Date(proj.createdAt || Date.now()).toLocaleDateString('pt-BR')}</p>
+                <div className="project-card-body">
+                  <h3 className="project-card-title">{proj.name}</h3>
+                  <div className="project-card-meta">
+                    <FiCalendar size={13} />
+                    <span>Criado em {new Date(proj.createdAt || Date.now()).toLocaleDateString('pt-BR')}</span>
+                  </div>
+                </div>
               </motion.div>
             ))}
             
@@ -281,11 +354,8 @@ export default function ProjectsPage() {
         <div>
           <button 
             onClick={handleCloseProject}
-            style={{ 
-              background: 'transparent', border: 'none', color: '#c084fc', 
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', 
-              marginBottom: '0.5rem', fontSize: '0.9rem', padding: 0 
-            }}
+            className="projects-back-btn"
+            aria-label="Voltar para a lista de projetos"
           >
             <FiArrowLeft /> Voltar para Projetos
           </button>
@@ -296,7 +366,7 @@ export default function ProjectsPage() {
 
       {isLoading ? (
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4rem' }}>
-          <FiLoader className="spin" size={32} color="#c084fc" />
+          <FiLoader className="spin" size={32} color="var(--accent)" />
         </div>
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
@@ -304,21 +374,26 @@ export default function ProjectsPage() {
             {columns.map((col) => (
               <Droppable droppableId={col.id} key={col.id}>
                 {(provided, snapshot) => (
-                  <div 
-                    className="kanban-column"
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    style={{
-                      background: snapshot.isDraggingOver ? 'rgba(255, 255, 255, 0.08)' : undefined
-                    }}
-                  >
+                  <div className="kanban-column">
                     <div className="kanban-column-bg" />
                     <div className="kanban-column-header">
                       <h3>{col.name}</h3>
                       <span className="kanban-count">{col.cards.length}</span>
                     </div>
                     
-                    <div className="kanban-cards">
+                    <div 
+                      className="kanban-cards"
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      style={{
+                        background: snapshot.isDraggingOver ? 'rgba(255, 255, 255, 0.06)' : undefined,
+                        minHeight: '150px',
+                        flex: 1,
+                        borderRadius: '8px',
+                        padding: '4px',
+                        transition: 'background 0.2s ease',
+                      }}
+                    >
                       {col.cards.map((card, cardIndex) => (
                         <Draggable key={card.id} draggableId={card.id} index={cardIndex}>
                           {(provided, snapshot) => (
@@ -327,6 +402,7 @@ export default function ProjectsPage() {
                               color={col.color || '#c084fc'} 
                               provided={provided} 
                               isDragging={snapshot.isDragging}
+                              onUpdateCard={handleUpdateCard}
                             />
                           )}
                         </Draggable>
@@ -368,7 +444,19 @@ export default function ProjectsPage() {
   );
 }
 
-function TaskCard({ card, color, provided, isDragging }: { card: Card; color: string; provided: any; isDragging: boolean }) {
+function TaskCard({ card, color, provided, isDragging, onUpdateCard }: { card: Card; color: string; provided: any; isDragging: boolean; onUpdateCard: (id: string, updates: Partial<Card>) => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editPriority, setEditPriority] = useState(card.priority || 'NONE');
+  const [editDueDate, setEditDueDate] = useState(card.dueDate ? new Date(card.dueDate).toISOString().slice(0, 16) : '');
+
+  const handleSave = () => {
+    onUpdateCard(card.id, { 
+      priority: editPriority, 
+      dueDate: editDueDate ? new Date(editDueDate) : undefined 
+    });
+    setIsEditing(false);
+  };
+
   return (
     <div
       className="kanban-card"
@@ -384,14 +472,29 @@ function TaskCard({ card, color, provided, isDragging }: { card: Card; color: st
     >
       <div className="kanban-card-top">
         <span className="kanban-tag" style={{ background: `${color}20`, color: color }}>
-          Task
+          {card.priority && card.priority !== 'NONE' ? `Pri: ${card.priority}` : 'Task'}
         </span>
-        <button className="kanban-card-more"><FiMoreHorizontal /></button>
+        <button className="kanban-card-more" onClick={() => setIsEditing(!isEditing)} aria-label="Opções do cartão" title="Opções do cartão"><FiMoreHorizontal /></button>
       </div>
       <h4 className="kanban-card-title">{card.title}</h4>
+
+      {isEditing && (
+        <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 1000, position: 'relative' }}>
+          <select value={editPriority} onChange={(e) => setEditPriority(e.target.value)} style={{ padding: '4px', background: '#333', color: 'white', border: '1px solid #555', borderRadius: '4px', fontSize: '12px' }}>
+            <option value="NONE">Sem Prioridade</option>
+            <option value="LOW">Baixa</option>
+            <option value="MEDIUM">Média</option>
+            <option value="HIGH">Alta</option>
+            <option value="URGENT">Urgente</option>
+          </select>
+          <input type="datetime-local" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} style={{ padding: '4px', background: '#333', color: 'white', border: '1px solid #555', borderRadius: '4px', fontSize: '12px' }} />
+          <button onClick={handleSave} style={{ padding: '4px', background: color, color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>Salvar</button>
+        </div>
+      )}
+
       <div className="kanban-card-bottom">
         <div className="kanban-card-meta">
-          <FiCalendar /> {new Date(card.createdAt || Date.now()).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+          <FiCalendar /> {card.dueDate ? new Date(card.dueDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : new Date(card.createdAt || Date.now()).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
         </div>
       </div>
     </div>

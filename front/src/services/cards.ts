@@ -8,6 +8,9 @@ export interface Card {
   position: number;
   priority: string;
   status: string;
+  dueDate?: string | Date;
+  branchName?: string;
+  githubIssueNumber?: number;
   createdAt?: string | Date;
 }
 
@@ -30,10 +33,10 @@ export const cardsApi = {
     });
     return res.json();
   },
-  move: async (id: string, targetColumnId: string, newPosition: number): Promise<Card> => {
+  move: async (id: string, targetColumnId: string, position: number): Promise<Card> => {
     const res = await authFetch(`/cards/${id}/move`, {
       method: 'PATCH',
-      body: JSON.stringify({ targetColumnId, newPosition }),
+      body: JSON.stringify({ targetColumnId, position, newPosition: position }),
     });
     return res.json();
   },

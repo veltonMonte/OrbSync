@@ -20,7 +20,13 @@ export const workspacesApi = {
     });
     return res.json();
   },
-  getStats: async (workspaceId: string): Promise<{ projects: number, inProgress: number, done: number }> => {
+  getStats: async (workspaceId: string): Promise<{ 
+    projects: number, 
+    inProgress: number, 
+    done: number,
+    activityData: { name: string, tasks: number }[],
+    projectDistributionData: { name: string, value: number, color: string }[]
+  }> => {
     const res = await authFetch(`/workspaces/${workspaceId}/stats`);
     return res.json();
   }

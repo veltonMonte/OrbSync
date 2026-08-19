@@ -49,4 +49,13 @@ export class CreateCardDto {
   @IsString({ each: true })
   @IsOptional()
   tagIds?: string[];
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  branchName?: string;
+
+  @IsInt()
+  @IsOptional()
+  githubIssueNumber?: number;
 }

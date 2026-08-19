@@ -1,0 +1,124 @@
+/* ════════════════════════════════════════════════════════
+   MODAL — Supabase/Firebase-style dialog
+   ════════════════════════════════════════════════════════ */
+.stg-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.stg-modal {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.04);
+  width: 100%;
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.stg-modal--sm { max-width: 440px; }
+.stg-modal--md { max-width: 520px; }
+.stg-modal--lg { max-width: 620px; }
+
+.stg-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 24px 24px 0;
+}
+
+.stg-modal-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+}
+
+.stg-modal-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.stg-modal-title {
+  font-size: 1.1rem;
+  font-weight: 650;
+  margin: 0 0 2px;
+  letter-spacing: -0.01em;
+}
+
+.stg-modal-desc {
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.stg-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  transition: all var(--duration-fast);
+  flex-shrink: 0;
+}
+
+.stg-modal-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface);
+}
+
+.stg-modal-body {
+  padding: 20px 24px;
+}
+
+.stg-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stg-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(255,255,255,0.015);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.stg-confirm-text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+@media (max-width: 860px) {
+  .stg-modal {
+    margin: 16px;
+    max-height: calc(100vh - 32px);
+  }
+}

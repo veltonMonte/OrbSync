@@ -2,6 +2,7 @@ import { Controller, Get, Post, UseGuards, Req, Res, Logger } from '@nestjs/comm
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { GmailService } from './gmail.service';
+import { google } from 'googleapis';
 
 @Controller('gmail')
 export class GmailController {
@@ -15,17 +16,46 @@ export class GmailController {
   @UseGuards(JwtAuthGuard)
   @Get('auth')
   async startAuth(@Req() req: any, @Res() res: any) {
-    // Como não há GOOGLE_CLIENT_ID real, faremos um mock do OAuth
-    // Em produção, isso redirecionaria para oauth2Client.generateAuthUrl(...)
-    const mockRedirectUrl = `http://localhost:5173/automacoes?gmail_mock_code=mock_code_${req.user.userId}`;
-    return res.status(200).json({ url: mockRedirectUrl });
+    try {
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        'http://localhost:5173/configuracoes'
+      );
+      
+      const scopes = [
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/gmail.modify'
+      ];
+      
+      const url = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: scopes,
+        prompt: 'consent'
+      });
+      
+      return res.status(200).json({ url });
+    } catch (error) {
+      this.logger.error('Erro ao gerar URL de auth', error);
+      return res.status(500).json({ url: '' });
+    }
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('callback')
+  @Post('callback')
   async callback(@Req() req: any, @Res() res: any) {
-    // O mock recebe a chamada vinda do frontend (poderia ser via query)
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ success: false, message: 'Código não fornecido' });
+
     try {
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        'http://localhost:5173/configuracoes'
+      );
+
+      const { tokens } = await oauth2Client.getToken(code);
+      
       await this.prisma.integration.upsert({
         where: {
           provider_userId: {
@@ -34,35 +64,65 @@ export class GmailController {
           },
         },
         update: {
-          accessToken: 'mock_access_token',
-          refreshToken: 'mock_refresh_token',
+          accessToken: tokens.access_token!,
+          refreshToken: tokens.refresh_token || '',
         },
         create: {
           provider: 'GOOGLE',
           userId: req.user.userId,
-          accessToken: 'mock_access_token',
-          refreshToken: 'mock_refresh_token',
+          accessToken: tokens.access_token!,
+          refreshToken: tokens.refresh_token || '',
         },
       });
 
-      this.logger.log(`Integração Gmail (Mock) concluída para usuário ${req.user.userId}`);
-      return res.status(200).json({ success: true, message: 'Conta conectada com sucesso (Mock)' });
+      this.logger.log(`Integração Gmail concluída para usuário ${req.user.userId}`);
+      return res.status(200).json({ success: true, message: 'Conta conectada com sucesso' });
     } catch (error) {
       this.logger.error('Erro ao conectar Gmail', error);
-      return res.status(500).json({ success: false, message: 'Erro ao salvar integração' });
+      return res.status(500).json({ success: false, message: 'Erro ao trocar o código por token' });
     }
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('trigger')
-  async triggerCron(@Res() res: any) {
-    // Exposing this for testing/demonstration purposes
+  async triggerCron(@Req() req: any, @Res() res: any) {
     try {
-      await this.gmailService.handleCron();
-      return res.status(200).json({ success: true, message: 'Cron do Gmail executado com sucesso' });
-    } catch (error) {
+      const integration = await this.prisma.integration.findUnique({
+        where: { provider_userId: { provider: 'GOOGLE', userId: req.user.userId } }
+      });
+      if (!integration) {
+        return res.status(400).json({ success: false, message: 'Nenhuma integração do Google encontrada.' });
+      }
+
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        'http://localhost:5173/configuracoes'
+      );
+      oauth2Client.setCredentials({
+        access_token: integration.accessToken,
+        refresh_token: integration.refreshToken,
+      });
+
+      const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+      
+      const gmailRes = await gmail.users.messages.list({
+        userId: 'me',
+        q: 'is:unread category:primary newer_than:1d',
+        maxResults: 5,
+      });
+      
+      const messages = gmailRes.data.messages || [];
+      if (messages.length === 0) {
+        return res.status(200).json({ success: true, message: 'Nenhum e-mail não lido encontrado no Gmail.' });
+      }
+
+      // We will trigger the background job but let the user know we found emails
+      this.gmailService.handleCron().catch(e => this.logger.error(e));
+      return res.status(200).json({ success: true, message: `Encontrados ${messages.length} e-mails não lidos. Processando em segundo plano...` });
+    } catch (error: any) {
       this.logger.error('Erro ao acionar cron do Gmail manualmente', error);
-      return res.status(500).json({ success: false, message: 'Erro ao executar cron' });
+      return res.status(500).json({ success: false, message: 'Erro ao acessar Gmail: ' + error.message });
     }
   }
 }
